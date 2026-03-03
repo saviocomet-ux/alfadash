@@ -9,7 +9,7 @@ import { TopTerms } from "@/components/dashboard/TopTerms";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Users, TrendingUp, Calendar, Target, Zap, Megaphone, CheckCircle } from "lucide-react";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
