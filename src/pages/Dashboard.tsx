@@ -116,6 +116,7 @@ const Dashboard = () => {
               </div>
               <TopTerms data={topTerms} />
             </div>
+            <UtmReport leads={leads} />
             <LeadsTable leads={leads} />
           </TabsContent>
 
