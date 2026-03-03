@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms } from "@/data/parseLeads";
+import { useMemo, useState } from "react";
+import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { StageChart } from "@/components/dashboard/StageChart";
 import { SourceChart } from "@/components/dashboard/SourceChart";
@@ -7,11 +7,43 @@ import { TimelineChart } from "@/components/dashboard/TimelineChart";
 import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { TopTerms } from "@/components/dashboard/TopTerms";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
+import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Users, TrendingUp, Calendar, Target, Zap, Megaphone } from "lucide-react";
 
+function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
+  if (!start && !end) return items;
+  return items.filter((item) => {
+    const dateStr = getDate(item);
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    if (start && d < start) return false;
+    if (end) {
+      const endOfDay = new Date(end);
+      endOfDay.setHours(23, 59, 59, 999);
+      if (d > endOfDay) return false;
+    }
+    return true;
+  });
+}
+
 const Dashboard = () => {
-  const leads = useMemo(() => parseLeads(), []);
+  const allLeads = useMemo(() => parseLeads(), []);
+
+  // CRM date filter
+  const [crmStart, setCrmStart] = useState<Date | undefined>();
+  const [crmEnd, setCrmEnd] = useState<Date | undefined>();
+
+  // Meta date filter
+  const [metaStart, setMetaStart] = useState<Date | undefined>();
+  const [metaEnd, setMetaEnd] = useState<Date | undefined>();
+
+  const leads = useMemo(
+    () => filterByDateRange(allLeads, (l) => l.createdAt, crmStart, crmEnd),
+    [allLeads, crmStart, crmEnd]
+  );
+
   const stageStats = useMemo(() => getStageStats(leads), [leads]);
   const sourceStats = useMemo(() => getSourceStats(leads), [leads]);
   const dailyLeads = useMemo(() => getDailyLeads(leads), [leads]);
@@ -20,6 +52,7 @@ const Dashboard = () => {
   const agendamentos = leads.filter((l) => l.stage === "AGENDAMENTO").length;
   const negociacoes = leads.filter((l) => l.stage === "NEGOCIAÇÃO").length;
   const googleLeads = leads.filter((l) => l.source === "Google Ads").length;
+  const safePercent = (n: number) => leads.length > 0 ? ((n / leads.length) * 100).toFixed(1) : "0";
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,12 +89,21 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="crm" className="space-y-6">
+            {/* Date Filter */}
+            <DateRangeFilter
+              startDate={crmStart}
+              endDate={crmEnd}
+              onStartChange={setCrmStart}
+              onEndChange={setCrmEnd}
+              onClear={() => { setCrmStart(undefined); setCrmEnd(undefined); }}
+            />
+
             {/* KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total de Leads" value={leads.length} subtitle="Todos os leads importados" icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
-              <KpiCard title="Agendamentos" value={agendamentos} subtitle={`${((agendamentos / leads.length) * 100).toFixed(1)}% do total`} icon={<Calendar className="w-5 h-5 text-success" />} variant="success" />
-              <KpiCard title="Negociações" value={negociacoes} subtitle={`${((negociacoes / leads.length) * 100).toFixed(1)}% do total`} icon={<Target className="w-5 h-5 text-warning" />} variant="warning" />
-              <KpiCard title="Google Ads" value={googleLeads} subtitle={`${((googleLeads / leads.length) * 100).toFixed(1)}% do total`} icon={<TrendingUp className="w-5 h-5 text-info" />} variant="default" />
+              <KpiCard title="Total de Leads" value={leads.length} subtitle={allLeads.length !== leads.length ? `de ${allLeads.length} no total` : "Todos os leads importados"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
+              <KpiCard title="Agendamentos" value={agendamentos} subtitle={`${safePercent(agendamentos)}% do total`} icon={<Calendar className="w-5 h-5 text-success" />} variant="success" />
+              <KpiCard title="Negociações" value={negociacoes} subtitle={`${safePercent(negociacoes)}% do total`} icon={<Target className="w-5 h-5 text-warning" />} variant="warning" />
+              <KpiCard title="Google Ads" value={googleLeads} subtitle={`${safePercent(googleLeads)}% do total`} icon={<TrendingUp className="w-5 h-5 text-info" />} variant="default" />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <StageChart data={stageStats} />
@@ -77,7 +119,16 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="meta">
-            <MetaAdsDashboard />
+            <div className="space-y-6">
+              <DateRangeFilter
+                startDate={metaStart}
+                endDate={metaEnd}
+                onStartChange={setMetaStart}
+                onEndChange={setMetaEnd}
+                onClear={() => { setMetaStart(undefined); setMetaEnd(undefined); }}
+              />
+              <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} />
+            </div>
           </TabsContent>
         </Tabs>
       </main>
