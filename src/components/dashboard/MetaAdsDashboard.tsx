@@ -39,8 +39,30 @@ const resultTypeBadge: Record<string, string> = {
   "Visitas ao perfil do Instagram": "bg-info/15 text-info",
 };
 
-export function MetaAdsDashboard() {
-  const ads = useMemo(() => parseMetaAds(), []);
+interface MetaAdsDashboardProps {
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export function MetaAdsDashboard({ startDate, endDate }: MetaAdsDashboardProps) {
+  const allAds = useMemo(() => parseMetaAds(), []);
+
+  const ads = useMemo(() => {
+    if (!startDate && !endDate) return allAds;
+    return allAds.filter((a) => {
+      if (!a.startDate) return false;
+      const d = new Date(a.startDate);
+      if (isNaN(d.getTime())) return false;
+      if (startDate && d < startDate) return false;
+      if (endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (d > endOfDay) return false;
+      }
+      return true;
+    });
+  }, [allAds, startDate, endDate]);
+
   const kpis = useMemo(() => getMetaKpis(ads), [ads]);
   const campaignStats = useMemo(() => getCampaignStats(ads), [ads]);
   const adSetStats = useMemo(() => getAdSetStats(ads), [ads]);
