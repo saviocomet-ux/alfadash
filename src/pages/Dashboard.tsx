@@ -7,7 +7,6 @@ import { TimelineChart } from "@/components/dashboard/TimelineChart";
 import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { TopTerms } from "@/components/dashboard/TopTerms";
 import { UtmReport } from "@/components/dashboard/UtmReport";
-import { ConversionFunnel } from "@/components/dashboard/ConversionFunnel";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -111,7 +110,6 @@ const Dashboard = () => {
               <StageChart data={stageStats} />
               <SourceChart data={sourceStats} />
             </div>
-            <ConversionFunnel leads={leads} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
                 <TimelineChart data={dailyLeads} />
