@@ -51,7 +51,7 @@ const Dashboard = () => {
 
   const agendamentos = leads.filter((l) => l.stage === "AGENDAMENTO").length;
   const negociacoes = leads.filter((l) => l.stage === "NEGOCIAÇÃO").length;
-  const vendasGanhas = leads.filter((l) => l.stage.toLowerCase().includes("venda ganha") || l.stage === "Venda ganha" || l.stage === "VENDA GANHA" || l.stage === "Venda Ganha").length;
+  const vendasGanhas = leads.filter((l) => l.stage.toLowerCase().startsWith("closed - won")).length;
   const safePercent = (n: number) => leads.length > 0 ? ((n / leads.length) * 100).toFixed(1) : "0";
 
   return (
