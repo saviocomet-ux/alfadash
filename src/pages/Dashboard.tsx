@@ -9,7 +9,7 @@ import { TopTerms } from "@/components/dashboard/TopTerms";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Users, TrendingUp, Calendar, Target, Zap, Megaphone } from "lucide-react";
+import { Users, TrendingUp, Calendar, Target, Zap, Megaphone, CheckCircle } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
@@ -51,7 +51,7 @@ const Dashboard = () => {
 
   const agendamentos = leads.filter((l) => l.stage === "AGENDAMENTO").length;
   const negociacoes = leads.filter((l) => l.stage === "NEGOCIAÇÃO").length;
-  const googleLeads = leads.filter((l) => l.source === "Google Ads").length;
+  const vendasGanhas = leads.filter((l) => l.closedAt && l.closedAt !== "não fechado" && l.closedAt !== "").length;
   const safePercent = (n: number) => leads.length > 0 ? ((n / leads.length) * 100).toFixed(1) : "0";
 
   return (
@@ -103,7 +103,7 @@ const Dashboard = () => {
               <KpiCard title="Total de Leads" value={leads.length} subtitle={allLeads.length !== leads.length ? `de ${allLeads.length} no total` : "Todos os leads importados"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
               <KpiCard title="Agendamentos" value={agendamentos} subtitle={`${safePercent(agendamentos)}% do total`} icon={<Calendar className="w-5 h-5 text-success" />} variant="success" />
               <KpiCard title="Negociações" value={negociacoes} subtitle={`${safePercent(negociacoes)}% do total`} icon={<Target className="w-5 h-5 text-warning" />} variant="warning" />
-              <KpiCard title="Google Ads" value={googleLeads} subtitle={`${safePercent(googleLeads)}% do total`} icon={<TrendingUp className="w-5 h-5 text-info" />} variant="default" />
+              <KpiCard title="Vendas Ganhas" value={vendasGanhas} subtitle={`${safePercent(vendasGanhas)}% do total`} icon={<CheckCircle className="w-5 h-5 text-info" />} variant="default" />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <StageChart data={stageStats} />
