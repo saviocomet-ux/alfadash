@@ -9,7 +9,7 @@ import { TopTerms } from "@/components/dashboard/TopTerms";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Users, TrendingUp, Calendar, Target, Zap, Megaphone, CheckCircle } from "lucide-react";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
@@ -61,7 +61,7 @@ const Dashboard = () => {
         <div className="max-w-[1440px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Zap className="w-4 h-4 text-primary-foreground" />
+              <Search className="w-4 h-4 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground">Agência Alfa</h1>
