@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { parseMetaAds, getMetaKpis, getCampaignStats, getAdSetStats } from "@/data/parseMetaAds";
 import { KpiCard } from "./KpiCard";
-import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3 } from "lucide-react";
+import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 
 const COLORS = [
@@ -23,6 +23,22 @@ const tooltipStyle = {
 
 const formatBRL = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+const resultTypeLabels: Record<string, string> = {
+  "Contactos no site": "Mensagem (Site)",
+  "Leads no site": "Lead (Site)",
+  "Leads (formulário)": "Lead (Formulário)",
+  "Cliques na ligação": "Clique no Link",
+  "Visitas ao perfil do Instagram": "Visita ao Perfil",
+};
+
+const resultTypeBadge: Record<string, string> = {
+  "Contactos no site": "bg-primary/15 text-primary",
+  "Leads no site": "bg-success/15 text-success",
+  "Leads (formulário)": "bg-accent/15 text-accent",
+  "Cliques na ligação": "bg-warning/15 text-warning",
+  "Visitas ao perfil do Instagram": "bg-info/15 text-info",
+};
+
 export function MetaAdsDashboard() {
   const ads = useMemo(() => parseMetaAds(), []);
   const kpis = useMemo(() => getMetaKpis(ads), [ads]);
@@ -30,6 +46,27 @@ export function MetaAdsDashboard() {
   const adSetStats = useMemo(() => getAdSetStats(ads), [ads]);
 
   const activeAds = ads.filter((a) => a.status === "active").length;
+
+  // Result type breakdown
+  const resultTypeStats = useMemo(() => {
+    const types: Record<string, { count: number; spent: number }> = {};
+    ads.forEach((a) => {
+      if (a.resultType && a.results > 0) {
+        if (!types[a.resultType]) types[a.resultType] = { count: 0, spent: 0 };
+        types[a.resultType].count += a.results;
+        types[a.resultType].spent += a.amountSpent;
+      }
+    });
+    return Object.entries(types)
+      .map(([type, stats]) => ({ type, label: resultTypeLabels[type] || type, ...stats }))
+      .sort((a, b) => b.count - a.count);
+  }, [ads]);
+
+  const messagingResults = resultTypeStats.find((r) => r.type === "Contactos no site");
+  const formLeadResults = resultTypeStats.filter((r) => r.type === "Leads no site" || r.type === "Leads (formulário)");
+  const totalFormLeads = formLeadResults.reduce((s, r) => s + r.count, 0);
+  const totalFormSpent = formLeadResults.reduce((s, r) => s + r.spent, 0);
+
   const statusData = [
     { name: "Ativo", count: ads.filter((a) => a.status === "active").length },
     { name: "Inativo", count: ads.filter((a) => a.status === "inactive").length },
@@ -39,7 +76,7 @@ export function MetaAdsDashboard() {
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           title="Total Investido"
           value={formatBRL(kpis.totalSpent)}
@@ -48,18 +85,36 @@ export function MetaAdsDashboard() {
           variant="primary"
         />
         <KpiCard
-          title="Resultados"
-          value={kpis.totalResults}
-          subtitle={`CPL médio: ${formatBRL(kpis.avgCPL)}`}
-          icon={<Target className="w-5 h-5 text-success" />}
+          title="Mensagens (Site)"
+          value={messagingResults?.count || 0}
+          subtitle={messagingResults ? `CPL: ${formatBRL(messagingResults.spent / messagingResults.count)}` : "Sem dados"}
+          icon={<MessageCircle className="w-5 h-5 text-success" />}
           variant="success"
+        />
+        <KpiCard
+          title="Leads (Formulário + Site)"
+          value={totalFormLeads}
+          subtitle={totalFormLeads > 0 ? `CPL: ${formatBRL(totalFormSpent / totalFormLeads)}` : "Sem dados"}
+          icon={<FileText className="w-5 h-5 text-accent" />}
+          variant="default"
+        />
+      </div>
+
+      {/* Secondary KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          title="Total de Resultados"
+          value={kpis.totalResults}
+          subtitle={`CPR médio: ${formatBRL(kpis.avgCPL)}`}
+          icon={<Target className="w-5 h-5 text-warning" />}
+          variant="warning"
         />
         <KpiCard
           title="Alcance Total"
           value={kpis.totalReach.toLocaleString("pt-BR")}
           subtitle={`${kpis.totalImpressions.toLocaleString("pt-BR")} impressões`}
-          icon={<Eye className="w-5 h-5 text-warning" />}
-          variant="warning"
+          icon={<Eye className="w-5 h-5 text-primary" />}
+          variant="primary"
         />
         <KpiCard
           title="Cliques"
@@ -68,6 +123,34 @@ export function MetaAdsDashboard() {
           icon={<MousePointerClick className="w-5 h-5 text-info" />}
           variant="default"
         />
+        <KpiCard
+          title="Leads de Formulário"
+          value={kpis.totalFormLeads}
+          subtitle="Via formulário nativo Meta"
+          icon={<FileText className="w-5 h-5 text-success" />}
+          variant="success"
+        />
+      </div>
+
+      {/* Result Type Breakdown */}
+      <div className="glass-card p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Target className="w-4 h-4 text-accent" />
+          Resultados por Tipo de Conversão
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {resultTypeStats.map((r) => (
+            <div key={r.type} className="rounded-lg border border-border/50 bg-secondary/30 p-4">
+              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-2 ${resultTypeBadge[r.type] || "bg-muted text-muted-foreground"}`}>
+                {r.label}
+              </span>
+              <div className="text-2xl font-bold text-foreground">{r.count}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Investido: {formatBRL(r.spent)} · CPR: {formatBRL(r.spent / r.count)}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Campaign spend + Status pie */}
@@ -164,6 +247,7 @@ export function MetaAdsDashboard() {
                 <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Anúncio</th>
                 <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Investido</th>
+                <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Tipo</th>
                 <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Result.</th>
                 <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">CPR</th>
                 <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Cliques</th>
@@ -191,6 +275,15 @@ export function MetaAdsDashboard() {
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right text-muted-foreground font-mono text-xs">{formatBRL(ad.amountSpent)}</td>
+                    <td className="py-3 px-3">
+                      {ad.resultType ? (
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${resultTypeBadge[ad.resultType] || "bg-muted text-muted-foreground"}`}>
+                          {resultTypeLabels[ad.resultType] || ad.resultType}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
                     <td className="py-3 px-3 text-right text-foreground">{ad.results || "—"}</td>
                     <td className="py-3 px-3 text-right text-muted-foreground font-mono text-xs">
                       {ad.costPerResult > 0 ? formatBRL(ad.costPerResult) : "—"}
