@@ -6,7 +6,9 @@ import { SourceChart } from "@/components/dashboard/SourceChart";
 import { TimelineChart } from "@/components/dashboard/TimelineChart";
 import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { TopTerms } from "@/components/dashboard/TopTerms";
-import { Users, TrendingUp, Calendar, Target, Zap } from "lucide-react";
+import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Users, TrendingUp, Calendar, Target, Zap, Megaphone } from "lucide-react";
 
 const Dashboard = () => {
   const leads = useMemo(() => parseLeads(), []);
@@ -40,55 +42,44 @@ const Dashboard = () => {
       </header>
 
       {/* Content */}
-      <main className="max-w-[1440px] mx-auto px-6 py-6 space-y-6">
-        {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
-            title="Total de Leads"
-            value={leads.length}
-            subtitle="Todos os leads importados"
-            icon={<Users className="w-5 h-5 text-primary" />}
-            variant="primary"
-          />
-          <KpiCard
-            title="Agendamentos"
-            value={agendamentos}
-            subtitle={`${((agendamentos / leads.length) * 100).toFixed(1)}% do total`}
-            icon={<Calendar className="w-5 h-5 text-success" />}
-            variant="success"
-          />
-          <KpiCard
-            title="Negociações"
-            value={negociacoes}
-            subtitle={`${((negociacoes / leads.length) * 100).toFixed(1)}% do total`}
-            icon={<Target className="w-5 h-5 text-warning" />}
-            variant="warning"
-          />
-          <KpiCard
-            title="Google Ads"
-            value={googleLeads}
-            subtitle={`${((googleLeads / leads.length) * 100).toFixed(1)}% do total`}
-            icon={<TrendingUp className="w-5 h-5 text-info" />}
-            variant="default"
-          />
-        </div>
+      <main className="max-w-[1440px] mx-auto px-6 py-6">
+        <Tabs defaultValue="crm" className="space-y-6">
+          <TabsList className="bg-secondary border border-border/50">
+            <TabsTrigger value="crm" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Users className="w-4 h-4" />
+              CRM Leads
+            </TabsTrigger>
+            <TabsTrigger value="meta" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Megaphone className="w-4 h-4" />
+              Meta Ads
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <StageChart data={stageStats} />
-          <SourceChart data={sourceStats} />
-        </div>
+          <TabsContent value="crm" className="space-y-6">
+            {/* KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard title="Total de Leads" value={leads.length} subtitle="Todos os leads importados" icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
+              <KpiCard title="Agendamentos" value={agendamentos} subtitle={`${((agendamentos / leads.length) * 100).toFixed(1)}% do total`} icon={<Calendar className="w-5 h-5 text-success" />} variant="success" />
+              <KpiCard title="Negociações" value={negociacoes} subtitle={`${((negociacoes / leads.length) * 100).toFixed(1)}% do total`} icon={<Target className="w-5 h-5 text-warning" />} variant="warning" />
+              <KpiCard title="Google Ads" value={googleLeads} subtitle={`${((googleLeads / leads.length) * 100).toFixed(1)}% do total`} icon={<TrendingUp className="w-5 h-5 text-info" />} variant="default" />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <StageChart data={stageStats} />
+              <SourceChart data={sourceStats} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2">
+                <TimelineChart data={dailyLeads} />
+              </div>
+              <TopTerms data={topTerms} />
+            </div>
+            <LeadsTable leads={leads} />
+          </TabsContent>
 
-        {/* Timeline + Keywords */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <TimelineChart data={dailyLeads} />
-          </div>
-          <TopTerms data={topTerms} />
-        </div>
-
-        {/* Table */}
-        <LeadsTable leads={leads} />
+          <TabsContent value="meta">
+            <MetaAdsDashboard />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
