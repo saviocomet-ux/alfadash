@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
+import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { StageChart } from "@/components/dashboard/StageChart";
 import { SourceChart } from "@/components/dashboard/SourceChart";
@@ -10,7 +11,8 @@ import { UtmReport } from "@/components/dashboard/UtmReport";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3 } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
