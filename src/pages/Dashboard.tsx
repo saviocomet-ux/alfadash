@@ -237,6 +237,9 @@ const Dashboard = () => {
               <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} />
             </div>
           </TabsContent>
+          <TabsContent value="google">
+            <GoogleAdsDashboard />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
