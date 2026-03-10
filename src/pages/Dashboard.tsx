@@ -122,6 +122,10 @@ const Dashboard = () => {
               <Megaphone className="w-4 h-4" />
               Meta Ads
             </TabsTrigger>
+            <TabsTrigger value="google" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Search className="w-4 h-4" />
+              Google Ads
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="crm" className="space-y-6">
