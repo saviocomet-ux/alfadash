@@ -9,6 +9,7 @@ import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { TopTerms } from "@/components/dashboard/TopTerms";
 import { UtmReport } from "@/components/dashboard/UtmReport";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
+import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -121,6 +122,10 @@ const Dashboard = () => {
               <Megaphone className="w-4 h-4" />
               Meta Ads
             </TabsTrigger>
+            <TabsTrigger value="google" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Search className="w-4 h-4" />
+              Google Ads
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="crm" className="space-y-6">
@@ -231,6 +236,9 @@ const Dashboard = () => {
               />
               <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} />
             </div>
+          </TabsContent>
+          <TabsContent value="google">
+            <GoogleAdsDashboard />
           </TabsContent>
         </Tabs>
       </main>
