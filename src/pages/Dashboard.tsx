@@ -9,6 +9,7 @@ import { TimelineChart } from "@/components/dashboard/TimelineChart";
 import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { TopTerms } from "@/components/dashboard/TopTerms";
 import { UtmReport } from "@/components/dashboard/UtmReport";
+import { SalesBySourceCard } from "@/components/dashboard/SalesBySourceCard";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
