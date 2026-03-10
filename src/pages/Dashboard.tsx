@@ -15,7 +15,7 @@ import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3 } from "lucide-react";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
