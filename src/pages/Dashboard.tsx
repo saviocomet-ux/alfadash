@@ -85,9 +85,24 @@ const Dashboard = () => {
   const valorVendasGanhas = wonLeads.reduce((sum, l) => sum + l.value, 0);
   const safePercent = (n: number) => leads.length > 0 ? ((n / leads.length) * 100).toFixed(1) : "0";
 
-  // Meta Ads total spent
+  // Meta Ads + Google Ads total spent
   const metaKpis = useMemo(() => getMetaKpis(allMetaAds), [allMetaAds]);
-  const totalInvestido = metaKpis.totalSpent;
+  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(), []);
+  const googleKpis = useMemo(() => getGoogleAdsKpis(googleKeywords), [googleKeywords]);
+  const totalInvestido = metaKpis.totalSpent + googleKpis.totalCost;
+
+  // Tempo médio de fechamento (dias entre criação e modificação para won leads)
+  const tempoMedioFechamento = useMemo(() => {
+    const tempos = wonLeads
+      .filter((l) => l.createdAt && l.modifiedAt)
+      .map((l) => {
+        const created = new Date(l.createdAt);
+        const modified = new Date(l.modifiedAt);
+        return (modified.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+      })
+      .filter((d) => d >= 0);
+    return tempos.length > 0 ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
+  }, [wonLeads]);
 
   // ROI = (Revenue - Cost) / Cost * 100
   const roi = totalInvestido > 0 ? ((valorVendasGanhas - totalInvestido) / totalInvestido) * 100 : 0;
