@@ -50,6 +50,10 @@ const Dashboard = () => {
   const [metaStart, setMetaStart] = useState<Date | undefined>();
   const [metaEnd, setMetaEnd] = useState<Date | undefined>();
 
+  // Google date filter
+  const [googleStart, setGoogleStart] = useState<Date | undefined>();
+  const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
+
   const dateFilteredLeads = useMemo(
     () => filterByDateRange(allLeads, (l) => l.createdAt, crmStart, crmEnd),
     [allLeads, crmStart, crmEnd]
