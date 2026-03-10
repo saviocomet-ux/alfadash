@@ -238,7 +238,16 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           <TabsContent value="google">
-            <GoogleAdsDashboard />
+            <div className="space-y-6">
+              <DateRangeFilter
+                startDate={googleStart}
+                endDate={googleEnd}
+                onStartChange={setGoogleStart}
+                onEndChange={setGoogleEnd}
+                onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
+              />
+              <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} />
+            </div>
           </TabsContent>
         </Tabs>
       </main>

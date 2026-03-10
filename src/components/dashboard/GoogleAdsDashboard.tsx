@@ -16,9 +16,25 @@ const tooltipStyle = {
   color: "hsl(210, 40%, 96%)",
 };
 
-export function GoogleAdsDashboard() {
-  const timeline = useMemo(() => parseGoogleAdsTimeline(), []);
+interface GoogleAdsDashboardProps {
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export function GoogleAdsDashboard({ startDate, endDate }: GoogleAdsDashboardProps) {
+  const allTimeline = useMemo(() => parseGoogleAdsTimeline(), []);
   const keywords = useMemo(() => parseGoogleAdsKeywords(), []);
+
+  const timeline = useMemo(() => {
+    if (!startDate && !endDate) return allTimeline;
+    return allTimeline.filter((t) => {
+      const d = new Date(t.date);
+      if (startDate && d < startDate) return false;
+      if (endDate) { const e = new Date(endDate); e.setHours(23,59,59,999); if (d > e) return false; }
+      return true;
+    });
+  }, [allTimeline, startDate, endDate]);
+
   const kpis = useMemo(() => getGoogleAdsKpis(keywords), [keywords]);
   const adGroupStats = useMemo(() => getAdGroupStats(keywords), [keywords]);
 
