@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
+import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { StageChart } from "@/components/dashboard/StageChart";
 import { SourceChart } from "@/components/dashboard/SourceChart";
@@ -8,12 +9,13 @@ import { TimelineChart } from "@/components/dashboard/TimelineChart";
 import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { TopTerms } from "@/components/dashboard/TopTerms";
 import { UtmReport } from "@/components/dashboard/UtmReport";
+import { SalesBySourceCard } from "@/components/dashboard/SalesBySourceCard";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3 } from "lucide-react";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
@@ -83,9 +85,24 @@ const Dashboard = () => {
   const valorVendasGanhas = wonLeads.reduce((sum, l) => sum + l.value, 0);
   const safePercent = (n: number) => leads.length > 0 ? ((n / leads.length) * 100).toFixed(1) : "0";
 
-  // Meta Ads total spent
+  // Meta Ads + Google Ads total spent
   const metaKpis = useMemo(() => getMetaKpis(allMetaAds), [allMetaAds]);
-  const totalInvestido = metaKpis.totalSpent;
+  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(), []);
+  const googleKpis = useMemo(() => getGoogleAdsKpis(googleKeywords), [googleKeywords]);
+  const totalInvestido = metaKpis.totalSpent + googleKpis.totalCost;
+
+  // Tempo médio de fechamento (dias entre criação e modificação para won leads)
+  const tempoMedioFechamento = useMemo(() => {
+    const tempos = wonLeads
+      .filter((l) => l.createdAt && l.modifiedAt)
+      .map((l) => {
+        const created = new Date(l.createdAt);
+        const modified = new Date(l.modifiedAt);
+        return (modified.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+      })
+      .filter((d) => d >= 0);
+    return tempos.length > 0 ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
+  }, [wonLeads]);
 
   // ROI = (Revenue - Cost) / Cost * 100
   const roi = totalInvestido > 0 ? ((valorVendasGanhas - totalInvestido) / totalInvestido) * 100 : 0;
@@ -190,14 +207,28 @@ const Dashboard = () => {
               <KpiCard title="Vendas Ganhas" value={vendasGanhas} subtitle={formatBRL(valorVendasGanhas)} icon={<CheckCircle className="w-5 h-5 text-info" />} variant="default" />
             </div>
 
-            {/* ROI / ROAS */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* ROI / ROAS / Investido / Tempo Médio / Vendas por Fonte */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <KpiCard
+                title="Total Investido"
+                value={formatBRL(totalInvestido)}
+                subtitle={`Meta: ${formatBRL(metaKpis.totalSpent)} · Google: ${formatBRL(googleKpis.totalCost)}`}
+                icon={<Wallet className="w-5 h-5 text-warning" />}
+                variant="warning"
+              />
               <KpiCard
                 title="Valor Vendas Ganhas"
                 value={formatBRL(valorVendasGanhas)}
                 subtitle={`${vendasGanhas} vendas fechadas`}
                 icon={<DollarSign className="w-5 h-5 text-success" />}
                 variant="success"
+              />
+              <KpiCard
+                title="Tempo Médio Fechamento"
+                value={`${tempoMedioFechamento.toFixed(1)} dias`}
+                subtitle={`Baseado em ${wonLeads.length} vendas ganhas`}
+                icon={<Clock className="w-5 h-5 text-primary" />}
+                variant="primary"
               />
               <KpiCard
                 title="ROI"
@@ -213,6 +244,7 @@ const Dashboard = () => {
                 icon={<BarChart3 className="w-5 h-5 text-warning" />}
                 variant="warning"
               />
+              <SalesBySourceCard leads={leads} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
