@@ -50,6 +50,10 @@ const Dashboard = () => {
   const [metaStart, setMetaStart] = useState<Date | undefined>();
   const [metaEnd, setMetaEnd] = useState<Date | undefined>();
 
+  // Google date filter
+  const [googleStart, setGoogleStart] = useState<Date | undefined>();
+  const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
+
   const dateFilteredLeads = useMemo(
     () => filterByDateRange(allLeads, (l) => l.createdAt, crmStart, crmEnd),
     [allLeads, crmStart, crmEnd]
@@ -238,7 +242,16 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           <TabsContent value="google">
-            <GoogleAdsDashboard />
+            <div className="space-y-6">
+              <DateRangeFilter
+                startDate={googleStart}
+                endDate={googleEnd}
+                onStartChange={setGoogleStart}
+                onEndChange={setGoogleEnd}
+                onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
+              />
+              <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} />
+            </div>
           </TabsContent>
         </Tabs>
       </main>
