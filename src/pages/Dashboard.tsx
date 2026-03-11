@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
 import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
+import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { StageChart } from "@/components/dashboard/StageChart";
 import { SourceChart } from "@/components/dashboard/SourceChart";
@@ -15,7 +16,7 @@ import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet } from "lucide-react";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3 } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
@@ -146,6 +147,10 @@ const Dashboard = () => {
             <TabsTrigger value="google" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
               <Search className="w-4 h-4" />
               Google Ads
+            </TabsTrigger>
+            <TabsTrigger value="cohort" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Grid3X3 className="w-4 h-4" />
+              Cohort
             </TabsTrigger>
           </TabsList>
 
@@ -284,6 +289,9 @@ const Dashboard = () => {
               />
               <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} />
             </div>
+          </TabsContent>
+          <TabsContent value="cohort">
+            <CohortMatrix leads={allLeads} metaAds={allMetaAds} googleKeywords={googleKeywords} />
           </TabsContent>
         </Tabs>
       </main>
