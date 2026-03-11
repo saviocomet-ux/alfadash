@@ -23,7 +23,7 @@ interface GoogleAdsDashboardProps {
 
 export function GoogleAdsDashboard({ startDate, endDate }: GoogleAdsDashboardProps) {
   const allTimeline = useMemo(() => parseGoogleAdsTimeline(), []);
-  const keywords = useMemo(() => parseGoogleAdsKeywords(), []);
+  const allKeywords = useMemo(() => parseGoogleAdsKeywords(), []);
 
   const timeline = useMemo(() => {
     if (!startDate && !endDate) return allTimeline;
@@ -34,6 +34,9 @@ export function GoogleAdsDashboard({ startDate, endDate }: GoogleAdsDashboardPro
       return true;
     });
   }, [allTimeline, startDate, endDate]);
+
+  // Note: keywords don't have dates, so they aren't date-filtered
+  const keywords = allKeywords;
 
   const kpis = useMemo(() => getGoogleAdsKpis(keywords), [keywords]);
   const adGroupStats = useMemo(() => getAdGroupStats(keywords), [keywords]);
