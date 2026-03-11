@@ -1,9 +1,30 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Lead } from "@/data/parseLeads";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState } from "react";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const COLORS = [
+  "hsl(199, 89%, 48%)",
+  "hsl(262, 83%, 58%)",
+  "hsl(330, 80%, 60%)",
+  "hsl(142, 71%, 45%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(220, 70%, 55%)",
+  "hsl(10, 80%, 55%)",
+  "hsl(180, 60%, 45%)",
+];
+
+const tooltipStyle = {
+  backgroundColor: "hsl(222, 47%, 9%)",
+  border: "1px solid hsl(222, 30%, 16%)",
+  borderRadius: "8px",
+  color: "hsl(210, 40%, 96%)",
+  fontSize: 12,
+};
 
 interface SalesBySourceCardProps {
   leads: Lead[];
@@ -42,7 +63,7 @@ export function SalesBySourceCard({ leads }: SalesBySourceCardProps) {
       .sort((a, b) => b.totalValue - a.totalValue);
   }, [wonLeads]);
 
-  const maxValue = Math.max(...sourceData.map((d) => d.totalValue), 1);
+  const totalValue = sourceData.reduce((s, d) => s + d.totalValue, 0);
 
   return (
     <>
@@ -50,30 +71,41 @@ export function SalesBySourceCard({ leads }: SalesBySourceCardProps) {
         onClick={() => setOpen(true)}
         className="glass-card p-5 border-primary/30 glow-primary transition-all hover:scale-[1.02] duration-300 text-left w-full cursor-pointer"
       >
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between mb-2">
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Vendas por Fonte</p>
-            <p className="text-3xl font-bold text-foreground">{sourceData.length}</p>
-            <p className="text-xs text-muted-foreground mt-1">{wonLeads.length} vendas · Clique para detalhes</p>
-          </div>
-          <div className="p-2.5 rounded-lg bg-primary/10">
-            <svg className="w-5 h-5 text-primary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <p className="text-xl font-bold text-foreground">{wonLeads.length} vendas · {formatBRL(totalValue)}</p>
+            <p className="text-xs text-muted-foreground">Clique para detalhes</p>
           </div>
         </div>
-        {/* Mini bar preview */}
-        <div className="mt-3 space-y-1.5">
-          {sourceData.slice(0, 3).map((s) => (
-            <div key={s.source} className="space-y-0.5">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-muted-foreground">{s.source}</span>
-                <span className="text-foreground font-mono">{s.count}</span>
-              </div>
-              <div className="h-1 rounded-full bg-secondary overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-                  style={{ width: `${(s.totalValue / maxValue) * 100}%` }}
-                />
-              </div>
+        {/* Mini pie chart */}
+        <div className="h-[120px] mt-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={sourceData}
+                cx="50%"
+                cy="50%"
+                innerRadius={25}
+                outerRadius={48}
+                dataKey="count"
+                nameKey="source"
+                stroke="none"
+                paddingAngle={2}
+              >
+                {sourceData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} formatter={(value: number, name: string) => [`${value} vendas`, name]} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+          {sourceData.map((s, i) => (
+            <div key={s.source} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+              {s.source} ({s.count})
             </div>
           ))}
         </div>
@@ -107,9 +139,9 @@ export function SalesBySourceCard({ leads }: SalesBySourceCardProps) {
                   <TableRow className="border-border/50 bg-secondary/30">
                     <TableCell className="text-xs text-foreground font-bold">Total</TableCell>
                     <TableCell className="text-xs text-foreground text-right font-mono font-bold">{wonLeads.length}</TableCell>
-                    <TableCell className="text-xs text-foreground text-right font-mono font-bold">{formatBRL(sourceData.reduce((s, d) => s + d.totalValue, 0))}</TableCell>
+                    <TableCell className="text-xs text-foreground text-right font-mono font-bold">{formatBRL(totalValue)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground text-right font-mono">
-                      {formatBRL(wonLeads.length > 0 ? sourceData.reduce((s, d) => s + d.totalValue, 0) / wonLeads.length : 0)}
+                      {formatBRL(wonLeads.length > 0 ? totalValue / wonLeads.length : 0)}
                     </TableCell>
                   </TableRow>
                 )}

@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { parseMetaAds, getMetaKpis, getCampaignStats, getAdSetStats } from "@/data/parseMetaAds";
 import { KpiCard } from "./KpiCard";
-import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
+import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText, ArrowUpDown } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const COLORS = [
   "hsl(199, 89%, 48%)",
