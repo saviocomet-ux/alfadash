@@ -148,6 +148,10 @@ const Dashboard = () => {
               <Search className="w-4 h-4" />
               Google Ads
             </TabsTrigger>
+            <TabsTrigger value="cohort" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2">
+              <Grid3X3 className="w-4 h-4" />
+              Cohort
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="crm" className="space-y-6">
