@@ -290,6 +290,9 @@ const Dashboard = () => {
               <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} />
             </div>
           </TabsContent>
+          <TabsContent value="cohort">
+            <CohortMatrix leads={allLeads} metaAds={allMetaAds} googleKeywords={googleKeywords} />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
