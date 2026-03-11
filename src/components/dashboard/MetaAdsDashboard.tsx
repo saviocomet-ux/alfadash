@@ -90,11 +90,19 @@ export function MetaAdsDashboard({ startDate, endDate }: MetaAdsDashboardProps) 
   const totalFormLeads = formLeadResults.reduce((s, r) => s + r.count, 0);
   const totalFormSpent = formLeadResults.reduce((s, r) => s + r.spent, 0);
 
-  const statusData = [
-    { name: "Ativo", count: ads.filter((a) => a.status === "active").length },
-    { name: "Inativo", count: ads.filter((a) => a.status === "inactive").length },
-    { name: "Pausado", count: ads.filter((a) => a.status === "not_delivering").length },
-  ].filter((d) => d.count > 0);
+  const [sortField, setSortField] = useState<string>("amountSpent");
+  const sortOptions: { value: string; label: string }[] = [
+    { value: "amountSpent", label: "Investido" },
+    { value: "results", label: "Resultados" },
+    { value: "costPerResult", label: "CPR" },
+    { value: "linkClicks", label: "Cliques" },
+    { value: "ctr", label: "CTR" },
+    { value: "cpm", label: "CPM" },
+  ];
+
+  const sortedAds = useMemo(() => {
+    return [...ads].sort((a: any, b: any) => (b[sortField] || 0) - (a[sortField] || 0));
+  }, [ads, sortField]);
 
   return (
     <div className="space-y-6">
