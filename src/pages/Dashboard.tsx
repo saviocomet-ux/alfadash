@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
 import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
+import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { StageChart } from "@/components/dashboard/StageChart";
 import { SourceChart } from "@/components/dashboard/SourceChart";
