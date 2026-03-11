@@ -244,7 +244,22 @@ export function MetaAdsDashboard({ startDate, endDate }: MetaAdsDashboardProps) 
 
       {/* All Ads table */}
       <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Todos os Anúncios ({ads.length})</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-foreground">Todos os Anúncios ({ads.length})</h3>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+            <Select value={sortField} onValueChange={setSortField}>
+              <SelectTrigger className="w-[140px] h-8 text-xs bg-secondary border-border/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -261,9 +276,7 @@ export function MetaAdsDashboard({ startDate, endDate }: MetaAdsDashboardProps) 
               </tr>
             </thead>
             <tbody>
-              {ads
-                .sort((a, b) => b.amountSpent - a.amountSpent)
-                .map((ad, i) => (
+              {sortedAds.map((ad, i) => (
                   <tr key={i} className="border-b border-border/30 hover:bg-secondary/50 transition-colors">
                     <td className="py-3 px-3 font-medium text-foreground max-w-[200px] truncate">{ad.adName}</td>
                     <td className="py-3 px-3">
