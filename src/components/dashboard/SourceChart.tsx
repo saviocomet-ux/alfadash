@@ -41,6 +41,8 @@ export function SourceChart({ data }: SourceChartProps) {
                 borderRadius: "8px",
                 color: "hsl(210, 40%, 96%)",
               }}
+              itemStyle={{ color: "hsl(210, 40%, 96%)" }}
+              labelStyle={{ color: "hsl(210, 40%, 96%)" }}
             />
             <Legend 
               wrapperStyle={{ fontSize: 12, color: "hsl(210, 40%, 85%)" }}
