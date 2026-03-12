@@ -34,6 +34,8 @@ export function TimelineChart({ data }: TimelineChartProps) {
                 borderRadius: "8px",
                 color: "hsl(210, 40%, 96%)",
               }}
+              itemStyle={{ color: "hsl(210, 40%, 96%)" }}
+              labelStyle={{ color: "hsl(210, 40%, 96%)" }}
             />
             <Area
               type="monotone"

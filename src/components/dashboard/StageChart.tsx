@@ -34,6 +34,8 @@ export function StageChart({ data }: StageChartProps) {
                 borderRadius: "8px",
                 color: "hsl(210, 40%, 96%)",
               }}
+              itemStyle={{ color: "hsl(210, 40%, 96%)" }}
+              labelStyle={{ color: "hsl(210, 40%, 96%)" }}
             />
             <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={28}>
               {data.map((entry, index) => (

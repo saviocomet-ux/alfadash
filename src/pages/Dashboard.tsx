@@ -11,6 +11,7 @@ import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { TopTerms } from "@/components/dashboard/TopTerms";
 import { UtmReport } from "@/components/dashboard/UtmReport";
 import { SalesBySourceCard } from "@/components/dashboard/SalesBySourceCard";
+import { LossReasonsChart } from "@/components/dashboard/LossReasonsChart";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
@@ -256,6 +257,7 @@ const Dashboard = () => {
               <StageChart data={stageStats} />
               <SourceChart data={sourceStats} />
             </div>
+            <LossReasonsChart leads={leads} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
                 <TimelineChart data={dailyLeads} />

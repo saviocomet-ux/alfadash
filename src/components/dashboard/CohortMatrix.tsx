@@ -167,7 +167,7 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
               <XAxis dataKey="name" tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
               <YAxis yAxisId="left" tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
               <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "hsl(210, 40%, 96%)" }} labelStyle={{ color: "hsl(210, 40%, 96%)" }} />
               <Bar yAxisId="left" dataKey="leads" fill="hsl(199, 89%, 48%)" radius={[4, 4, 0, 0]} name="Leads" opacity={0.7} />
               <Bar yAxisId="left" dataKey="vendas" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Vendas" />
               <Line yAxisId="right" type="monotone" dataKey="taxa" stroke="hsl(38, 92%, 50%)" strokeWidth={2} dot={{ r: 4 }} name="Taxa Conv. (%)" />
