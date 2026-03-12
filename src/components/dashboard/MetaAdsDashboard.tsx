@@ -195,7 +195,7 @@ export function MetaAdsDashboard({ startDate, endDate }: MetaAdsDashboardProps) 
             <BarChart data={campaignStats} layout="vertical" margin={{ left: 10, right: 20 }}>
               <XAxis type="number" tickFormatter={(v) => `R$${v}`} tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
               <YAxis type="category" dataKey="name" width={180} tick={{ fill: "hsl(210, 40%, 85%)", fontSize: 10 }} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "hsl(210, 40%, 96%)" }} labelStyle={{ color: "hsl(210, 40%, 96%)" }} formatter={(v: number) => formatBRL(v)} />
               <Bar dataKey="spent" name="Investido" radius={[0, 6, 6, 0]}>
                 {campaignStats.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />

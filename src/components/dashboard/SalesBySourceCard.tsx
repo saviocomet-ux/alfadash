@@ -97,7 +97,7 @@ export function SalesBySourceCard({ leads }: SalesBySourceCardProps) {
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={tooltipStyle} formatter={(value: number, name: string) => [`${value} vendas`, name]} />
+              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "hsl(210, 40%, 96%)" }} labelStyle={{ color: "hsl(210, 40%, 96%)" }} formatter={(value: number, name: string) => [`${value} vendas`, name]} />
             </PieChart>
           </ResponsiveContainer>
         </div>

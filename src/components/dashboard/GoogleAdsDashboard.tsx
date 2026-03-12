@@ -162,7 +162,7 @@ export function GoogleAdsDashboard({ startDate, endDate }: GoogleAdsDashboardPro
                   tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 10 }}
                   tickFormatter={(v) => v.length > 35 ? v.slice(0, 35) + "…" : v}
                 />
-                <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => formatBRL(value)} />
+                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "hsl(210, 40%, 96%)" }} labelStyle={{ color: "hsl(210, 40%, 96%)" }} formatter={(value: number) => formatBRL(value)} />
                 <Bar dataKey="cost" fill="hsl(199, 89%, 48%)" radius={[0, 4, 4, 0]} name="Custo" />
               </BarChart>
             </ResponsiveContainer>
