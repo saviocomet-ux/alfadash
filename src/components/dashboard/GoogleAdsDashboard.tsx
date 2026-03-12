@@ -132,7 +132,7 @@ export function GoogleAdsDashboard({ startDate, endDate }: GoogleAdsDashboardPro
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(222, 30%, 16%)" />
               <XAxis dataKey="label" tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
               <YAxis tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "hsl(210, 40%, 96%)" }} labelStyle={{ color: "hsl(210, 40%, 96%)" }} />
               <Area
                 type="monotone"
                 dataKey="impressions"
