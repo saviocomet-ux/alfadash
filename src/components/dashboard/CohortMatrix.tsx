@@ -4,6 +4,7 @@ import { MetaAd } from "@/data/parseMetaAds";
 import { GoogleAdsKeyword } from "@/data/parseGoogleAds";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -90,6 +91,28 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
 
     return { matrix, creationMonths, closeMonths, rowTotals, colTotals, grandTotal };
   }, [leads]);
+
+  // Average days to close per cohort month
+  const cohortAvgDays = useMemo(() => {
+    const cohortDays: Record<string, number[]> = {};
+    leads.forEach((l) => {
+      if (!l.stage.toLowerCase().startsWith("closed - won") || !l.closedAt || !l.createdAt) return;
+      const createKey = getMonthKey(l.createdAt);
+      if (!createKey) return;
+      const created = new Date(l.createdAt);
+      const closed = new Date(l.closedAt);
+      const diffDays = Math.max(0, Math.round((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)));
+      if (!cohortDays[createKey]) cohortDays[createKey] = [];
+      cohortDays[createKey].push(diffDays);
+    });
+    return creationMonths.map((m) => {
+      const days = cohortDays[m] || [];
+      const avg = days.length > 0 ? Math.round(days.reduce((s, d) => s + d, 0) / days.length) : 0;
+      const min = days.length > 0 ? Math.min(...days) : 0;
+      const max = days.length > 0 ? Math.max(...days) : 0;
+      return { month: getMonthLabel(m), avg, min, max, count: days.length };
+    }).filter((d) => d.count > 0);
+  }, [leads, creationMonths]);
 
   // Find max cell value for heatmap intensity
   const maxCellValue = useMemo(() => {
@@ -240,6 +263,55 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
           </TooltipProvider>
         </div>
       </div>
+
+      {/* Average Time to Close Chart */}
+      {cohortAvgDays.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-1">Tempo Médio de Fechamento por Cohort</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Dias entre a criação do lead e o fechamento da venda, agrupados pelo mês de criação
+          </p>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={cohortAvgDays} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickLine={false}
+                  label={{ value: "Dias", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                />
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                  itemStyle={{ color: "hsl(var(--popover-foreground))" }}
+                  labelStyle={{ color: "hsl(var(--popover-foreground))", fontWeight: 600 }}
+                  formatter={(value: number, _name: string, entry: any) => {
+                    const d = entry.payload;
+                    return [`${value} dias (min: ${d.min}, max: ${d.max}) · ${d.count} vendas`, "Média"];
+                  }}
+                />
+                <Bar dataKey="avg" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                  {cohortAvgDays.map((entry, index) => {
+                    const intensity = Math.min(entry.avg / Math.max(...cohortAvgDays.map(d => d.avg), 1), 1);
+                    const hue = 142 - intensity * 100; // green → orange/red for longer times
+                    return <Cell key={index} fill={`hsl(${hue}, 70%, 50%)`} />;
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
