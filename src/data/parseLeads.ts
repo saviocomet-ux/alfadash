@@ -58,7 +58,7 @@ export function parseLeads(): Lead[] {
       responsible: row["Usuário responsável"] || "",
       createdAt: parseDate(row["Criado em"] || ""),
       modifiedAt: parseDate(row["modificada em"] || ""),
-      closedAt: row["Fechado às"] || "",
+      closedAt: parseDate(row["Fechado às"] || ""),
       tags,
       stage: row["Etapa do lead"] || "Sem etapa",
       funnel: row["Funil de vendas"] || "",
