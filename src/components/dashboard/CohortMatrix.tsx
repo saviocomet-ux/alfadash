@@ -92,6 +92,28 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
     return { matrix, creationMonths, closeMonths, rowTotals, colTotals, grandTotal };
   }, [leads]);
 
+  // Average days to close per cohort month
+  const cohortAvgDays = useMemo(() => {
+    const cohortDays: Record<string, number[]> = {};
+    leads.forEach((l) => {
+      if (!l.stage.toLowerCase().startsWith("closed - won") || !l.closedAt || !l.createdAt) return;
+      const createKey = getMonthKey(l.createdAt);
+      if (!createKey) return;
+      const created = new Date(l.createdAt);
+      const closed = new Date(l.closedAt);
+      const diffDays = Math.max(0, Math.round((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)));
+      if (!cohortDays[createKey]) cohortDays[createKey] = [];
+      cohortDays[createKey].push(diffDays);
+    });
+    return creationMonths.map((m) => {
+      const days = cohortDays[m] || [];
+      const avg = days.length > 0 ? Math.round(days.reduce((s, d) => s + d, 0) / days.length) : 0;
+      const min = days.length > 0 ? Math.min(...days) : 0;
+      const max = days.length > 0 ? Math.max(...days) : 0;
+      return { month: getMonthLabel(m), avg, min, max, count: days.length };
+    }).filter((d) => d.count > 0);
+  }, [leads, creationMonths]);
+
   // Find max cell value for heatmap intensity
   const maxCellValue = useMemo(() => {
     let max = 0;
