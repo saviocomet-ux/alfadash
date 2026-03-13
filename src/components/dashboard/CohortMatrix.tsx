@@ -3,41 +3,14 @@ import { Lead } from "@/data/parseLeads";
 import { MetaAd } from "@/data/parseMetaAds";
 import { GoogleAdsKeyword } from "@/data/parseGoogleAds";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, CartesianGrid } from "recharts";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const formatPercent = (v: number) => `${v.toFixed(1)}%`;
-
-const tooltipStyle = {
-  backgroundColor: "hsl(222, 47%, 9%)",
-  border: "1px solid hsl(222, 30%, 16%)",
-  borderRadius: "8px",
-  color: "hsl(210, 40%, 96%)",
-  fontSize: 12,
-};
-
-interface CohortMatrixProps {
-  leads: Lead[];
-  metaAds: MetaAd[];
-  googleKeywords: GoogleAdsKeyword[];
-}
-
-interface CohortRow {
-  month: string;         // "2025-07", "2025-08", etc.
-  monthLabel: string;    // "Jul/25", "Ago/25"
-  leadsCount: number;
-  salesCount: number;
-  salesValue: number;
-  conversionRate: number;
-  invested: number;
-  roi: number;
-  cac: number;
-  avgTicket: number;
-}
 
 const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function getMonthKey(dateStr: string): string {
+  if (!dateStr) return "";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "";
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -49,88 +22,92 @@ function getMonthLabel(key: string): string {
   return `${monthNames[m]}/${year.slice(2)}`;
 }
 
+interface CohortMatrixProps {
+  leads: Lead[];
+  metaAds: MetaAd[];
+  googleKeywords: GoogleAdsKeyword[];
+}
+
+interface CohortCell {
+  salesCount: number;
+  salesValue: number;
+}
+
 export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixProps) {
-  const cohortData = useMemo(() => {
-    // Group leads by creation month
-    const monthLeads: Record<string, Lead[]> = {};
+  const { matrix, creationMonths, closeMonths, rowTotals, colTotals, grandTotal } = useMemo(() => {
+    // Build cohort matrix: rows = creation month, cols = close month
+    const matrix: Record<string, Record<string, CohortCell>> = {};
+    const creationSet = new Set<string>();
+    const closeSet = new Set<string>();
+
     leads.forEach((l) => {
-      const key = getMonthKey(l.createdAt);
-      if (!key) return;
-      if (!monthLeads[key]) monthLeads[key] = [];
-      monthLeads[key].push(l);
+      const createKey = getMonthKey(l.createdAt);
+      if (!createKey) return;
+      creationSet.add(createKey);
+
+      // Count as lead in creation month
+      if (!matrix[createKey]) matrix[createKey] = {};
+
+      // Check if won and has a close date
+      if (l.stage.toLowerCase().startsWith("closed - won") && l.closedAt) {
+        const closeKey = getMonthKey(l.closedAt);
+        if (!closeKey) return;
+        closeSet.add(closeKey);
+
+        if (!matrix[createKey][closeKey]) {
+          matrix[createKey][closeKey] = { salesCount: 0, salesValue: 0 };
+        }
+        matrix[createKey][closeKey].salesCount += 1;
+        matrix[createKey][closeKey].salesValue += l.value;
+      }
     });
 
-    // Group Meta Ads spend by month
-    const metaSpendByMonth: Record<string, number> = {};
-    metaAds.forEach((a) => {
-      if (!a.startDate) return;
-      const key = getMonthKey(a.startDate);
-      if (!key) return;
-      metaSpendByMonth[key] = (metaSpendByMonth[key] || 0) + a.amountSpent;
+    const creationMonths = Array.from(creationSet).sort();
+    const closeMonths = Array.from(new Set([...creationSet, ...closeSet])).sort();
+
+    // Row totals (per creation month)
+    const rowTotals: Record<string, { leads: number; sales: number; value: number }> = {};
+    creationMonths.forEach((cm) => {
+      const monthLeads = leads.filter((l) => getMonthKey(l.createdAt) === cm);
+      const sales = closeMonths.reduce((s, clm) => s + (matrix[cm]?.[clm]?.salesCount || 0), 0);
+      const value = closeMonths.reduce((s, clm) => s + (matrix[cm]?.[clm]?.salesValue || 0), 0);
+      rowTotals[cm] = { leads: monthLeads.length, sales, value };
     });
 
-    // Google Ads total cost (no date on keywords, distribute evenly across months with leads)
-    const googleTotal = googleKeywords.reduce((s, k) => s + k.cost, 0);
-
-    const allMonths = Object.keys(monthLeads).sort();
-    const googlePerMonth = allMonths.length > 0 ? googleTotal / allMonths.length : 0;
-
-    const rows: CohortRow[] = allMonths.map((month) => {
-      const mLeads = monthLeads[month] || [];
-      const won = mLeads.filter((l) => l.stage.toLowerCase().startsWith("closed - won"));
-      const salesValue = won.reduce((s, l) => s + l.value, 0);
-      const metaSpent = metaSpendByMonth[month] || 0;
-      const invested = metaSpent + googlePerMonth;
-      const conversionRate = mLeads.length > 0 ? (won.length / mLeads.length) * 100 : 0;
-      const roi = invested > 0 ? ((salesValue - invested) / invested) * 100 : 0;
-      const cac = won.length > 0 ? invested / won.length : 0;
-      const avgTicket = won.length > 0 ? salesValue / won.length : 0;
-
-      return {
-        month,
-        monthLabel: getMonthLabel(month),
-        leadsCount: mLeads.length,
-        salesCount: won.length,
-        salesValue,
-        conversionRate,
-        invested,
-        roi,
-        cac,
-        avgTicket,
-      };
+    // Column totals
+    const colTotals: Record<string, { sales: number; value: number }> = {};
+    closeMonths.forEach((clm) => {
+      const sales = creationMonths.reduce((s, cm) => s + (matrix[cm]?.[clm]?.salesCount || 0), 0);
+      const value = creationMonths.reduce((s, cm) => s + (matrix[cm]?.[clm]?.salesValue || 0), 0);
+      colTotals[clm] = { sales, value };
     });
 
-    return rows;
-  }, [leads, metaAds, googleKeywords]);
-
-  const totals = useMemo(() => {
-    const t = cohortData.reduce(
-      (acc, r) => ({
-        leads: acc.leads + r.leadsCount,
-        sales: acc.sales + r.salesCount,
-        salesValue: acc.salesValue + r.salesValue,
-        invested: acc.invested + r.invested,
-      }),
-      { leads: 0, sales: 0, salesValue: 0, invested: 0 }
-    );
-    return {
-      ...t,
-      conversionRate: t.leads > 0 ? (t.sales / t.leads) * 100 : 0,
-      roi: t.invested > 0 ? ((t.salesValue - t.invested) / t.invested) * 100 : 0,
-      cac: t.sales > 0 ? t.invested / t.sales : 0,
-      avgTicket: t.sales > 0 ? t.salesValue / t.sales : 0,
+    const grandTotal = {
+      leads: Object.values(rowTotals).reduce((s, r) => s + r.leads, 0),
+      sales: Object.values(rowTotals).reduce((s, r) => s + r.sales, 0),
+      value: Object.values(rowTotals).reduce((s, r) => s + r.value, 0),
     };
-  }, [cohortData]);
 
-  const chartData = useMemo(
-    () => cohortData.map((r) => ({
-      name: r.monthLabel,
-      leads: r.leadsCount,
-      vendas: r.salesCount,
-      taxa: r.conversionRate,
-    })),
-    [cohortData]
-  );
+    return { matrix, creationMonths, closeMonths, rowTotals, colTotals, grandTotal };
+  }, [leads]);
+
+  // Find max cell value for heatmap intensity
+  const maxCellValue = useMemo(() => {
+    let max = 0;
+    creationMonths.forEach((cm) => {
+      closeMonths.forEach((clm) => {
+        const v = matrix[cm]?.[clm]?.salesCount || 0;
+        if (v > max) max = v;
+      });
+    });
+    return max;
+  }, [matrix, creationMonths, closeMonths]);
+
+  function getCellBg(count: number): string {
+    if (count === 0) return "";
+    const intensity = Math.min(count / Math.max(maxCellValue, 1), 1);
+    return `hsla(142, 71%, 45%, ${0.15 + intensity * 0.45})`;
+  }
 
   return (
     <div className="space-y-6">
@@ -138,108 +115,129 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="glass-card p-4 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Leads</p>
-          <p className="text-2xl font-bold text-foreground">{totals.leads}</p>
+          <p className="text-2xl font-bold text-foreground">{grandTotal.leads}</p>
         </div>
         <div className="glass-card p-4 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Vendas</p>
-          <p className="text-2xl font-bold text-foreground">{totals.sales}</p>
-          <p className="text-xs text-muted-foreground">{formatPercent(totals.conversionRate)} conv.</p>
+          <p className="text-2xl font-bold text-foreground">{grandTotal.sales}</p>
+          <p className="text-xs text-muted-foreground">
+            {grandTotal.leads > 0 ? ((grandTotal.sales / grandTotal.leads) * 100).toFixed(1) : 0}% conv.
+          </p>
         </div>
         <div className="glass-card p-4 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">CAC Médio</p>
-          <p className="text-2xl font-bold text-foreground">{formatBRL(totals.cac)}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Valor Total</p>
+          <p className="text-2xl font-bold text-foreground">{formatBRL(grandTotal.value)}</p>
         </div>
         <div className="glass-card p-4 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">ROI Geral</p>
-          <p className={`text-2xl font-bold ${totals.roi >= 0 ? "text-success" : "text-destructive"}`}>
-            {formatPercent(totals.roi)}
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Ticket Médio</p>
+          <p className="text-2xl font-bold text-foreground">
+            {grandTotal.sales > 0 ? formatBRL(grandTotal.value / grandTotal.sales) : "—"}
           </p>
         </div>
       </div>
 
-      {/* Chart */}
+      {/* Cohort Matrix Table */}
       <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Leads vs Vendas por Mês</h3>
-        <div className="h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(222, 30%, 16%)" />
-              <XAxis dataKey="name" tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
-              <YAxis yAxisId="left" tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
-              <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
-              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "hsl(210, 40%, 96%)" }} labelStyle={{ color: "hsl(210, 40%, 96%)" }} />
-              <Bar yAxisId="left" dataKey="leads" fill="hsl(199, 89%, 48%)" radius={[4, 4, 0, 0]} name="Leads" opacity={0.7} />
-              <Bar yAxisId="left" dataKey="vendas" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Vendas" />
-              <Line yAxisId="right" type="monotone" dataKey="taxa" stroke="hsl(38, 92%, 50%)" strokeWidth={2} dot={{ r: 4 }} name="Taxa Conv. (%)" />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Cohort Table */}
-      <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Matriz de Cohort Mensal</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-1">Matriz de Cohort</h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Linhas = mês de criação do lead · Colunas = mês de fechamento da venda
+        </p>
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50">
-                <TableHead className="text-muted-foreground text-xs">Mês</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">Leads</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">Vendas</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">Taxa Conv.</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">Valor Vendas</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">Ticket Médio</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">Investido</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">CAC</TableHead>
-                <TableHead className="text-muted-foreground text-xs text-right">ROI</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cohortData.map((r) => (
-                <TableRow key={r.month} className="border-border/30 hover:bg-secondary/50">
-                  <TableCell className="text-xs font-medium text-foreground">{r.monthLabel}</TableCell>
-                  <TableCell className="text-xs text-foreground text-right font-mono">{r.leadsCount}</TableCell>
-                  <TableCell className="text-xs text-foreground text-right font-mono">{r.salesCount}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">
-                    <span className={r.conversionRate > 0 ? "text-success" : "text-muted-foreground"}>
-                      {formatPercent(r.conversionRate)}
-                    </span>
+          <TooltipProvider>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50">
+                  <TableHead className="text-muted-foreground text-xs sticky left-0 bg-background z-10">
+                    Criação ↓ / Fechamento →
+                  </TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Leads</TableHead>
+                  {closeMonths.map((m) => (
+                    <TableHead key={m} className="text-muted-foreground text-xs text-center min-w-[60px]">
+                      {getMonthLabel(m)}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-muted-foreground text-xs text-right">Total</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Conv.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {creationMonths.map((cm) => {
+                  const rt = rowTotals[cm];
+                  const convRate = rt.leads > 0 ? ((rt.sales / rt.leads) * 100).toFixed(1) : "0.0";
+                  return (
+                    <TableRow key={cm} className="border-border/30 hover:bg-secondary/30">
+                      <TableCell className="text-xs font-medium text-foreground sticky left-0 bg-background z-10">
+                        {getMonthLabel(cm)}
+                      </TableCell>
+                      <TableCell className="text-xs text-foreground text-right font-mono">{rt.leads}</TableCell>
+                      {closeMonths.map((clm) => {
+                        const cell = matrix[cm]?.[clm];
+                        const count = cell?.salesCount || 0;
+                        const value = cell?.salesValue || 0;
+                        return (
+                          <TableCell
+                            key={clm}
+                            className="text-xs text-center font-mono p-1"
+                            style={{ backgroundColor: getCellBg(count) }}
+                          >
+                            {count > 0 ? (
+                              <UITooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-foreground cursor-default font-semibold">{count}</span>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-popover text-popover-foreground border-border">
+                                  <p className="font-semibold">{count} venda{count > 1 ? "s" : ""}</p>
+                                  <p className="text-xs text-muted-foreground">{formatBRL(value)}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Lead: {getMonthLabel(cm)} → Fechou: {getMonthLabel(clm)}
+                                  </p>
+                                </TooltipContent>
+                              </UITooltip>
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-xs text-foreground text-right font-mono font-semibold">
+                        {rt.sales}
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-mono">
+                        <span className={parseFloat(convRate) > 0 ? "text-success" : "text-muted-foreground"}>
+                          {convRate}%
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {/* Column totals */}
+                <TableRow className="border-border/50 bg-secondary/30 font-bold">
+                  <TableCell className="text-xs font-bold text-foreground sticky left-0 bg-secondary/30 z-10">
+                    Total
                   </TableCell>
-                  <TableCell className="text-xs text-foreground text-right font-mono">{formatBRL(r.salesValue)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground text-right font-mono">{r.salesCount > 0 ? formatBRL(r.avgTicket) : "—"}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground text-right font-mono">{formatBRL(r.invested)}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">
-                    <span className={r.salesCount > 0 ? "text-warning" : "text-muted-foreground"}>
-                      {r.salesCount > 0 ? formatBRL(r.cac) : "—"}
-                    </span>
+                  <TableCell className="text-xs text-foreground text-right font-mono font-bold">
+                    {grandTotal.leads}
                   </TableCell>
-                  <TableCell className="text-xs text-right font-mono">
-                    <span className={r.roi >= 0 ? "text-success" : "text-destructive"}>
-                      {r.invested > 0 ? formatPercent(r.roi) : "—"}
+                  {closeMonths.map((clm) => {
+                    const ct = colTotals[clm];
+                    return (
+                      <TableCell key={clm} className="text-xs text-center font-mono font-bold text-foreground">
+                        {ct.sales > 0 ? ct.sales : "—"}
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="text-xs text-foreground text-right font-mono font-bold">
+                    {grandTotal.sales}
+                  </TableCell>
+                  <TableCell className="text-xs text-right font-mono font-bold">
+                    <span className="text-success">
+                      {grandTotal.leads > 0 ? ((grandTotal.sales / grandTotal.leads) * 100).toFixed(1) : 0}%
                     </span>
                   </TableCell>
                 </TableRow>
-              ))}
-              {/* Totals */}
-              <TableRow className="border-border/50 bg-secondary/30 font-bold">
-                <TableCell className="text-xs font-bold text-foreground">Total</TableCell>
-                <TableCell className="text-xs text-foreground text-right font-mono font-bold">{totals.leads}</TableCell>
-                <TableCell className="text-xs text-foreground text-right font-mono font-bold">{totals.sales}</TableCell>
-                <TableCell className="text-xs text-right font-mono font-bold">
-                  <span className="text-success">{formatPercent(totals.conversionRate)}</span>
-                </TableCell>
-                <TableCell className="text-xs text-foreground text-right font-mono font-bold">{formatBRL(totals.salesValue)}</TableCell>
-                <TableCell className="text-xs text-muted-foreground text-right font-mono">{formatBRL(totals.avgTicket)}</TableCell>
-                <TableCell className="text-xs text-muted-foreground text-right font-mono font-bold">{formatBRL(totals.invested)}</TableCell>
-                <TableCell className="text-xs text-right font-mono font-bold">
-                  <span className="text-warning">{formatBRL(totals.cac)}</span>
-                </TableCell>
-                <TableCell className="text-xs text-right font-mono font-bold">
-                  <span className={totals.roi >= 0 ? "text-success" : "text-destructive"}>{formatPercent(totals.roi)}</span>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          </TooltipProvider>
         </div>
       </div>
     </div>
