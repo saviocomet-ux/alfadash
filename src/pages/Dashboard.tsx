@@ -15,6 +15,8 @@ import { LossReasonsChart } from "@/components/dashboard/LossReasonsChart";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
+import { SheetsConfigDialog } from "@/components/dashboard/SheetsConfigDialog";
+import { useGoogleSheetsData } from "@/hooks/useGoogleSheetsData";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3 } from "lucide-react";
