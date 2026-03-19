@@ -54,9 +54,13 @@ interface MetaAdsDashboardProps {
 
 export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, apiLoading, apiError, onFetchApi, useApi, onToggleApi }: MetaAdsDashboardProps) {
   const csvAds = useMemo(() => parseMetaAds(csvOverride), [csvOverride]);
-  const allAds = useApi && apiData ? apiData : csvAds;
+  
+  // When API mode is active, ONLY show API data (empty array if not yet fetched)
+  const allAds = useApi ? (apiData || []) : csvAds;
 
+  // When using API, the date filtering is done server-side, so skip client filtering
   const ads = useMemo(() => {
+    if (useApi) return allAds;
     if (!startDate && !endDate) return allAds;
     return allAds.filter((a) => {
       if (!a.startDate) return false;
@@ -70,7 +74,7 @@ export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, api
       }
       return true;
     });
-  }, [allAds, startDate, endDate]);
+  }, [allAds, startDate, endDate, useApi]);
 
   const kpis = useMemo(() => getMetaKpis(ads), [ads]);
   const campaignStats = useMemo(() => getCampaignStats(ads), [ads]);
