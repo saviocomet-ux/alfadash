@@ -1,5 +1,4 @@
-import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useCallback, useEffect } from "react";
 import type { MetaAd } from "@/data/parseMetaAds";
 
 interface UseMetaAdsApiReturn {
@@ -10,7 +9,11 @@ interface UseMetaAdsApiReturn {
   isApiEnabled: boolean;
 }
 
-export function useMetaAdsApi(): UseMetaAdsApiReturn {
+export function useMetaAdsApi(
+  active: boolean,
+  startDate?: Date,
+  endDate?: Date
+): UseMetaAdsApiReturn {
   const [data, setData] = useState<MetaAd[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +57,22 @@ export function useMetaAdsApi(): UseMetaAdsApiReturn {
       setLoading(false);
     }
   }, []);
+
+  // Auto-fetch when API mode is activated or dates change
+  useEffect(() => {
+    if (!active) return;
+    const since = startDate ? startDate.toISOString().split("T")[0] : undefined;
+    const until = endDate ? endDate.toISOString().split("T")[0] : undefined;
+    fetchFromApi(since, until);
+  }, [active, startDate, endDate, fetchFromApi]);
+
+  // Clear data when deactivated
+  useEffect(() => {
+    if (!active) {
+      setData(null);
+      setError(null);
+    }
+  }, [active]);
 
   return {
     data,
