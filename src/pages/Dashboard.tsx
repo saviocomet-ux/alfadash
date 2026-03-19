@@ -93,7 +93,7 @@ const Dashboard = () => {
 
   // Meta Ads + Google Ads total spent
   const metaKpis = useMemo(() => getMetaKpis(allMetaAds), [allMetaAds]);
-  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(), []);
+  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(sheets.googleAdsKeywordsCSV), [sheets.googleAdsKeywordsCSV]);
   const googleKpis = useMemo(() => getGoogleAdsKpis(googleKeywords), [googleKeywords]);
   const totalInvestido = metaKpis.totalSpent + googleKpis.totalCost;
 
