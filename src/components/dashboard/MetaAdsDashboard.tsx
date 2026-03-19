@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { parseMetaAds, getMetaKpis, getCampaignStats, getAdSetStats } from "@/data/parseMetaAds";
+import { parseMetaAds, getMetaKpis, getCampaignStats, getAdSetStats, MetaAd } from "@/data/parseMetaAds";
 import { KpiCard } from "./KpiCard";
-import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText, ArrowUpDown } from "lucide-react";
+import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText, ArrowUpDown, Wifi, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
