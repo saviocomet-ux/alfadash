@@ -41,8 +41,10 @@ function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const Dashboard = () => {
-  const allLeads = useMemo(() => parseLeads(), []);
-  const allMetaAds = useMemo(() => parseMetaAds(), []);
+  const sheets = useGoogleSheetsData();
+
+  const allLeads = useMemo(() => parseLeads(sheets.leadsCSV), [sheets.leadsCSV]);
+  const allMetaAds = useMemo(() => parseMetaAds(sheets.metaAdsCSV), [sheets.metaAdsCSV]);
 
   // CRM date filter
   const [crmStart, setCrmStart] = useState<Date | undefined>();
