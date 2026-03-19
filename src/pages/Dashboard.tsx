@@ -289,7 +289,7 @@ const Dashboard = () => {
                 onEndChange={setMetaEnd}
                 onClear={() => { setMetaStart(undefined); setMetaEnd(undefined); }}
               />
-              <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} />
+              <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} csvOverride={sheets.metaAdsCSV} />
             </div>
           </TabsContent>
           <TabsContent value="google">
