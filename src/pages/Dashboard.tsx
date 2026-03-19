@@ -294,7 +294,17 @@ const Dashboard = () => {
                 onEndChange={setMetaEnd}
                 onClear={() => { setMetaStart(undefined); setMetaEnd(undefined); }}
               />
-              <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} csvOverride={sheets.metaAdsCSV} />
+              <MetaAdsDashboard
+                startDate={metaStart}
+                endDate={metaEnd}
+                csvOverride={sheets.metaAdsCSV}
+                apiData={metaApi.data}
+                apiLoading={metaApi.loading}
+                apiError={metaApi.error}
+                onFetchApi={metaApi.fetchFromApi}
+                useApi={useMetaApi}
+                onToggleApi={setUseMetaApi}
+              />
             </div>
           </TabsContent>
           <TabsContent value="google">
