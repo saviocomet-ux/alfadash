@@ -141,9 +141,13 @@ Deno.serve(async (req) => {
       throw new Error("META_ACCESS_TOKEN is not configured");
     }
 
-    const adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
+    let adAccountId = Deno.env.get("META_AD_ACCOUNT_ID");
     if (!adAccountId) {
       throw new Error("META_AD_ACCOUNT_ID is not configured");
+    }
+    // Ensure act_ prefix
+    if (!adAccountId.startsWith("act_")) {
+      adAccountId = `act_${adAccountId}`;
     }
 
     // Parse query params for date range
