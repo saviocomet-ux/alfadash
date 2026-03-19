@@ -301,7 +301,7 @@ const Dashboard = () => {
                 onEndChange={setGoogleEnd}
                 onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
               />
-              <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} />
+              <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} keywordsCsvOverride={sheets.googleAdsKeywordsCSV} timelineCsvOverride={sheets.googleAdsTimelineCSV} />
             </div>
           </TabsContent>
           <TabsContent value="cohort">
