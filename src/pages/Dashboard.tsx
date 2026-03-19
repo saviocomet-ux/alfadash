@@ -61,7 +61,7 @@ const Dashboard = () => {
   const [useMetaApi, setUseMetaApi] = useState(false);
 
   // Meta API hook
-  const metaApi = useMetaAdsApi();
+  const metaApi = useMetaAdsApi(useMetaApi, metaStart, metaEnd);
 
   // Google date filter
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
