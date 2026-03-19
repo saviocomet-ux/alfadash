@@ -51,8 +51,8 @@ function parseBRPercent(val: string): number {
   return parseFloat(val.replace("%", "").replace(",", ".")) || 0;
 }
 
-export function parseGoogleAdsTimeline(): GoogleAdsTimeline[] {
-  const result = Papa.parse(timelineCSV, { header: true, skipEmptyLines: true });
+export function parseGoogleAdsTimeline(csvOverride?: string | null): GoogleAdsTimeline[] {
+  const result = Papa.parse(csvOverride || timelineCSV, { header: true, skipEmptyLines: true });
   return result.data.map((row: any) => ({
     date: parsePtBRDate(row["Data"] || ""),
     impressions: parseInt(row["Impr."] || "0") || 0,
