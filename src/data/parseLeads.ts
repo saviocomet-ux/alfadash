@@ -39,8 +39,8 @@ export function getSourceFromTags(tags: string[], utmSource: string): string {
   return utmSource || "Direto";
 }
 
-export function parseLeads(): Lead[] {
-  const result = Papa.parse(leadsCSV, {
+export function parseLeads(csvOverride?: string | null): Lead[] {
+  const result = Papa.parse(csvOverride || leadsCSV, {
     header: true,
     skipEmptyLines: true,
   });

@@ -21,8 +21,8 @@ export interface MetaAd {
   startDate: string;
 }
 
-export function parseMetaAds(): MetaAd[] {
-  const result = Papa.parse(metaCSV, {
+export function parseMetaAds(csvOverride?: string | null): MetaAd[] {
+  const result = Papa.parse(csvOverride || metaCSV, {
     header: true,
     skipEmptyLines: true,
   });

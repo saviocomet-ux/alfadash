@@ -59,10 +59,13 @@ export function parseGoogleAdsTimeline(csvOverride?: string | null): GoogleAdsTi
   })).filter((r) => r.date);
 }
 
-export function parseGoogleAdsKeywords(): GoogleAdsKeyword[] {
+export function parseGoogleAdsKeywords(csvOverride?: string | null): GoogleAdsKeyword[] {
+  const raw = csvOverride || keywordsCSV;
   // Skip first 2 header lines (report title + date range), actual headers on line 3
-  const lines = keywordsCSV.split("\n");
-  const dataCSV = lines.slice(2).join("\n");
+  // Only skip if using original format (has report header lines)
+  const lines = raw.split("\n");
+  const needsSkip = !csvOverride && lines.length > 3;
+  const dataCSV = needsSkip ? lines.slice(2).join("\n") : raw;
   const result = Papa.parse(dataCSV, { header: true, skipEmptyLines: true });
 
   return result.data
