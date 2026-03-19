@@ -43,10 +43,11 @@ const resultTypeBadge: Record<string, string> = {
 interface MetaAdsDashboardProps {
   startDate?: Date;
   endDate?: Date;
+  csvOverride?: string | null;
 }
 
-export function MetaAdsDashboard({ startDate, endDate }: MetaAdsDashboardProps) {
-  const allAds = useMemo(() => parseMetaAds(), []);
+export function MetaAdsDashboard({ startDate, endDate, csvOverride }: MetaAdsDashboardProps) {
+  const allAds = useMemo(() => parseMetaAds(csvOverride), [csvOverride]);
 
   const ads = useMemo(() => {
     if (!startDate && !endDate) return allAds;
