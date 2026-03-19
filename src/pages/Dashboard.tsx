@@ -15,6 +15,8 @@ import { LossReasonsChart } from "@/components/dashboard/LossReasonsChart";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
+import { SheetsConfigDialog } from "@/components/dashboard/SheetsConfigDialog";
+import { useGoogleSheetsData } from "@/hooks/useGoogleSheetsData";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3 } from "lucide-react";
@@ -39,8 +41,10 @@ function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const Dashboard = () => {
-  const allLeads = useMemo(() => parseLeads(), []);
-  const allMetaAds = useMemo(() => parseMetaAds(), []);
+  const sheets = useGoogleSheetsData();
+
+  const allLeads = useMemo(() => parseLeads(sheets.leadsCSV), [sheets.leadsCSV]);
+  const allMetaAds = useMemo(() => parseMetaAds(sheets.metaAdsCSV), [sheets.metaAdsCSV]);
 
   // CRM date filter
   const [crmStart, setCrmStart] = useState<Date | undefined>();
@@ -89,7 +93,7 @@ const Dashboard = () => {
 
   // Meta Ads + Google Ads total spent
   const metaKpis = useMemo(() => getMetaKpis(allMetaAds), [allMetaAds]);
-  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(), []);
+  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(sheets.googleAdsKeywordsCSV), [sheets.googleAdsKeywordsCSV]);
   const googleKpis = useMemo(() => getGoogleAdsKpis(googleKeywords), [googleKeywords]);
   const totalInvestido = metaKpis.totalSpent + googleKpis.totalCost;
 
@@ -127,8 +131,16 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">Dashboard CRM</p>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground font-mono">
-            Atualizado em {new Date().toLocaleDateString("pt-BR")}
+          <div className="flex items-center gap-4">
+            <SheetsConfigDialog
+              config={sheets.config}
+              onSave={sheets.updateConfig}
+              loading={sheets.loading}
+              onRefetch={sheets.refetch}
+            />
+            <div className="text-xs text-muted-foreground font-mono">
+              Atualizado em {new Date().toLocaleDateString("pt-BR")}
+            </div>
           </div>
         </div>
       </header>
@@ -277,7 +289,7 @@ const Dashboard = () => {
                 onEndChange={setMetaEnd}
                 onClear={() => { setMetaStart(undefined); setMetaEnd(undefined); }}
               />
-              <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} />
+              <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} csvOverride={sheets.metaAdsCSV} />
             </div>
           </TabsContent>
           <TabsContent value="google">
@@ -289,7 +301,7 @@ const Dashboard = () => {
                 onEndChange={setGoogleEnd}
                 onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
               />
-              <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} />
+              <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} keywordsCsvOverride={sheets.googleAdsKeywordsCSV} timelineCsvOverride={sheets.googleAdsTimelineCSV} />
             </div>
           </TabsContent>
           <TabsContent value="cohort">

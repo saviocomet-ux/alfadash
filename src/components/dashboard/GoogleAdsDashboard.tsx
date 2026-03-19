@@ -19,11 +19,13 @@ const tooltipStyle = {
 interface GoogleAdsDashboardProps {
   startDate?: Date;
   endDate?: Date;
+  keywordsCsvOverride?: string | null;
+  timelineCsvOverride?: string | null;
 }
 
-export function GoogleAdsDashboard({ startDate, endDate }: GoogleAdsDashboardProps) {
-  const allTimeline = useMemo(() => parseGoogleAdsTimeline(), []);
-  const allKeywords = useMemo(() => parseGoogleAdsKeywords(), []);
+export function GoogleAdsDashboard({ startDate, endDate, keywordsCsvOverride, timelineCsvOverride }: GoogleAdsDashboardProps) {
+  const allTimeline = useMemo(() => parseGoogleAdsTimeline(timelineCsvOverride), [timelineCsvOverride]);
+  const allKeywords = useMemo(() => parseGoogleAdsKeywords(keywordsCsvOverride), [keywordsCsvOverride]);
 
   const timeline = useMemo(() => {
     if (!startDate && !endDate) return allTimeline;
