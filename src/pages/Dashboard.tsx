@@ -142,7 +142,6 @@ const Dashboard = () => {
               Atualizado em {new Date().toLocaleDateString("pt-BR")}
             </div>
           </div>
-          </div>
         </div>
       </header>
 
