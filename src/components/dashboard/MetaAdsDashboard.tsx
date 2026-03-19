@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { parseMetaAds, getMetaKpis, getCampaignStats, getAdSetStats } from "@/data/parseMetaAds";
+import { parseMetaAds, getMetaKpis, getCampaignStats, getAdSetStats, MetaAd } from "@/data/parseMetaAds";
 import { KpiCard } from "./KpiCard";
-import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText, ArrowUpDown } from "lucide-react";
+import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText, ArrowUpDown, Wifi, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -44,10 +44,17 @@ interface MetaAdsDashboardProps {
   startDate?: Date;
   endDate?: Date;
   csvOverride?: string | null;
+  apiData?: MetaAd[] | null;
+  apiLoading?: boolean;
+  apiError?: string | null;
+  onFetchApi?: (since?: string, until?: string) => void;
+  useApi?: boolean;
+  onToggleApi?: (val: boolean) => void;
 }
 
-export function MetaAdsDashboard({ startDate, endDate, csvOverride }: MetaAdsDashboardProps) {
-  const allAds = useMemo(() => parseMetaAds(csvOverride), [csvOverride]);
+export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, apiLoading, apiError, onFetchApi, useApi, onToggleApi }: MetaAdsDashboardProps) {
+  const csvAds = useMemo(() => parseMetaAds(csvOverride), [csvOverride]);
+  const allAds = useApi && apiData ? apiData : csvAds;
 
   const ads = useMemo(() => {
     if (!startDate && !endDate) return allAds;
@@ -107,7 +114,42 @@ export function MetaAdsDashboard({ startDate, endDate, csvOverride }: MetaAdsDas
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
+      {/* API Toggle */}
+      {onToggleApi && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => onToggleApi(!useApi)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              useApi
+                ? "bg-success/15 text-success border border-success/30"
+                : "bg-secondary text-muted-foreground border border-border/50"
+            }`}
+          >
+            {useApi ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {useApi ? "API Meta (ao vivo)" : "Dados CSV (estático)"}
+          </button>
+          {useApi && onFetchApi && (
+            <button
+              onClick={() => {
+                const since = startDate ? startDate.toISOString().split("T")[0] : undefined;
+                const until = endDate ? endDate.toISOString().split("T")[0] : undefined;
+                onFetchApi(since, until);
+              }}
+              disabled={apiLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${apiLoading ? "animate-spin" : ""}`} />
+              {apiLoading ? "Buscando..." : "Atualizar dados"}
+            </button>
+          )}
+          {apiError && (
+            <div className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {apiError}
+            </div>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           title="Total Investido"

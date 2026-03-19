@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
+import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
 import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -57,6 +58,10 @@ const Dashboard = () => {
   // Meta date filter
   const [metaStart, setMetaStart] = useState<Date | undefined>();
   const [metaEnd, setMetaEnd] = useState<Date | undefined>();
+  const [useMetaApi, setUseMetaApi] = useState(false);
+
+  // Meta API hook
+  const metaApi = useMetaAdsApi();
 
   // Google date filter
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
@@ -289,7 +294,17 @@ const Dashboard = () => {
                 onEndChange={setMetaEnd}
                 onClear={() => { setMetaStart(undefined); setMetaEnd(undefined); }}
               />
-              <MetaAdsDashboard startDate={metaStart} endDate={metaEnd} csvOverride={sheets.metaAdsCSV} />
+              <MetaAdsDashboard
+                startDate={metaStart}
+                endDate={metaEnd}
+                csvOverride={sheets.metaAdsCSV}
+                apiData={metaApi.data}
+                apiLoading={metaApi.loading}
+                apiError={metaApi.error}
+                onFetchApi={metaApi.fetchFromApi}
+                useApi={useMetaApi}
+                onToggleApi={setUseMetaApi}
+              />
             </div>
           </TabsContent>
           <TabsContent value="google">
