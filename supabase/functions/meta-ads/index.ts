@@ -13,7 +13,6 @@ const AD_FIELDS = [
   "campaign_name",
   "adset_name",
   "ad_name",
-  "status",
   "reach",
   "impressions",
   "frequency",
