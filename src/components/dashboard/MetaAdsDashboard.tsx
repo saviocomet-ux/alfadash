@@ -44,10 +44,17 @@ interface MetaAdsDashboardProps {
   startDate?: Date;
   endDate?: Date;
   csvOverride?: string | null;
+  apiData?: MetaAd[] | null;
+  apiLoading?: boolean;
+  apiError?: string | null;
+  onFetchApi?: (since?: string, until?: string) => void;
+  useApi?: boolean;
+  onToggleApi?: (val: boolean) => void;
 }
 
-export function MetaAdsDashboard({ startDate, endDate, csvOverride }: MetaAdsDashboardProps) {
-  const allAds = useMemo(() => parseMetaAds(csvOverride), [csvOverride]);
+export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, apiLoading, apiError, onFetchApi, useApi, onToggleApi }: MetaAdsDashboardProps) {
+  const csvAds = useMemo(() => parseMetaAds(csvOverride), [csvOverride]);
+  const allAds = useApi && apiData ? apiData : csvAds;
 
   const ads = useMemo(() => {
     if (!startDate && !endDate) return allAds;
