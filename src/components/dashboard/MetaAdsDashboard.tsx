@@ -114,7 +114,42 @@ export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, api
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
+      {/* API Toggle */}
+      {onToggleApi && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => onToggleApi(!useApi)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              useApi
+                ? "bg-success/15 text-success border border-success/30"
+                : "bg-secondary text-muted-foreground border border-border/50"
+            }`}
+          >
+            {useApi ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {useApi ? "API Meta (ao vivo)" : "Dados CSV (estático)"}
+          </button>
+          {useApi && onFetchApi && (
+            <button
+              onClick={() => {
+                const since = startDate ? startDate.toISOString().split("T")[0] : undefined;
+                const until = endDate ? endDate.toISOString().split("T")[0] : undefined;
+                onFetchApi(since, until);
+              }}
+              disabled={apiLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${apiLoading ? "animate-spin" : ""}`} />
+              {apiLoading ? "Buscando..." : "Atualizar dados"}
+            </button>
+          )}
+          {apiError && (
+            <div className="flex items-center gap-1.5 text-xs text-destructive">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {apiError}
+            </div>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           title="Total Investido"
