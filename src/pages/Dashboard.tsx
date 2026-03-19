@@ -58,6 +58,10 @@ const Dashboard = () => {
   // Meta date filter
   const [metaStart, setMetaStart] = useState<Date | undefined>();
   const [metaEnd, setMetaEnd] = useState<Date | undefined>();
+  const [useMetaApi, setUseMetaApi] = useState(false);
+
+  // Meta API hook
+  const metaApi = useMetaAdsApi();
 
   // Google date filter
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
