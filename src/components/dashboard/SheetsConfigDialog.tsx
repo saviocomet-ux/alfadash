@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Settings, ExternalLink, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Settings, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
 import { SheetsConfig, hasAnySheetsUrl } from "@/hooks/useGoogleSheetsData";
 import { toast } from "sonner";
 
@@ -25,7 +25,7 @@ export function SheetsConfigDialog({ config, onSave, loading, onRefetch }: Sheet
   };
 
   const handleClear = () => {
-    const empty: SheetsConfig = { leadsUrl: "", metaAdsUrl: "", googleAdsKeywordsUrl: "", googleAdsTimelineUrl: "" };
+    const empty: SheetsConfig = { googleAdsKeywordsUrl: "", googleAdsTimelineUrl: "" };
     setForm(empty);
     onSave(empty);
     toast.info("Configuração limpa. Usando dados estáticos.");
@@ -58,7 +58,7 @@ export function SheetsConfigDialog({ config, onSave, loading, onRefetch }: Sheet
         </DialogTrigger>
         <DialogContent className="sm:max-w-lg bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Integração Google Sheets</DialogTitle>
+            <DialogTitle className="text-foreground">Google Ads — Google Sheets</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
@@ -74,29 +74,14 @@ export function SheetsConfigDialog({ config, onSave, loading, onRefetch }: Sheet
                     <li>Clique <strong>Publicar</strong> e copie o link</li>
                     <li>Cole o link no campo correspondente abaixo</li>
                   </ol>
+                  <p className="mt-2 text-muted-foreground/80">
+                    <strong>Nota:</strong> CRM e Meta Ads agora usam API direta. Sheets é usado apenas para Google Ads.
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-foreground mb-1 block">Leads (CRM)</label>
-                <Input
-                  placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
-                  value={form.leadsUrl}
-                  onChange={(e) => setForm({ ...form, leadsUrl: e.target.value })}
-                  className="text-xs bg-secondary border-border/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-foreground mb-1 block">Meta Ads</label>
-                <Input
-                  placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
-                  value={form.metaAdsUrl}
-                  onChange={(e) => setForm({ ...form, metaAdsUrl: e.target.value })}
-                  className="text-xs bg-secondary border-border/50"
-                />
-              </div>
               <div>
                 <label className="text-xs font-medium text-foreground mb-1 block">Google Ads — Palavras-chave</label>
                 <Input
