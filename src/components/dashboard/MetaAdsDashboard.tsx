@@ -236,7 +236,7 @@ export function MetaAdsDashboard({ startDate, endDate, data, loading, error, onR
                   <th className="text-right py-2 px-2 text-muted-foreground font-medium">Resultados</th>
                   <th className="text-right py-2 px-2 text-muted-foreground font-medium">Cliques</th>
                   <th className="text-right py-2 px-2 text-muted-foreground font-medium">Alcance</th>
-                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Impressões</th>
+                  
                 </tr>
               </thead>
               <tbody>
