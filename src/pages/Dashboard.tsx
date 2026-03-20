@@ -3,6 +3,7 @@ import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, 
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
 import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
 import { useKommoData } from "@/hooks/useKommoData";
+import { useGoogleAdsApi } from "@/hooks/useGoogleAdsApi";
 import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -76,9 +77,11 @@ const Dashboard = () => {
   // Meta API hook
   const metaApi = useMetaAdsApi(useMetaApi, metaStart, metaEnd);
 
-  // Google date filter
+  // Google date filter & API
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
   const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
+  const [useGoogleApi, setUseGoogleApi] = useState(false);
+  const googleApi = useGoogleAdsApi(useGoogleApi, googleStart, googleEnd);
 
   const dateFilteredLeads = useMemo(
     () => filterByDateRange(effectiveAllLeads, (l) => l.createdAt, crmStart, crmEnd),
@@ -351,14 +354,49 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="google">
             <div className="space-y-6">
-              <DateRangeFilter
+              <div className="flex flex-wrap items-center gap-4">
+                <DateRangeFilter
+                  startDate={googleStart}
+                  endDate={googleEnd}
+                  onStartChange={setGoogleStart}
+                  onEndChange={setGoogleEnd}
+                  onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
+                />
+                <div className="flex items-center gap-2 ml-auto">
+                  <Switch id="google-api-toggle" checked={useGoogleApi} onCheckedChange={setUseGoogleApi} />
+                  <Label htmlFor="google-api-toggle" className="text-xs font-medium text-muted-foreground">
+                    Google Ads API (ao vivo)
+                  </Label>
+                  {useGoogleApi && (
+                    <button
+                      onClick={() => googleApi.fetch()}
+                      disabled={googleApi.loading}
+                      className="ml-2 p-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                      title="Atualizar dados do Google Ads"
+                    >
+                      {googleApi.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {googleApi.error && (
+                <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-lg">
+                  Erro ao buscar dados do Google Ads: {googleApi.error}
+                </div>
+              )}
+              {useGoogleApi && googleApi.loading && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Carregando dados do Google Ads...
+                </div>
+              )}
+              <GoogleAdsDashboard
                 startDate={googleStart}
                 endDate={googleEnd}
-                onStartChange={setGoogleStart}
-                onEndChange={setGoogleEnd}
-                onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
+                keywordsCsvOverride={sheets.googleAdsKeywordsCSV}
+                timelineCsvOverride={sheets.googleAdsTimelineCSV}
+                apiData={useGoogleApi ? googleApi.data : null}
               />
-              <GoogleAdsDashboard startDate={googleStart} endDate={googleEnd} keywordsCsvOverride={sheets.googleAdsKeywordsCSV} timelineCsvOverride={sheets.googleAdsTimelineCSV} />
             </div>
           </TabsContent>
           <TabsContent value="cohort">
