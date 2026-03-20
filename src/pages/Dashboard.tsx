@@ -77,9 +77,11 @@ const Dashboard = () => {
   // Meta API hook
   const metaApi = useMetaAdsApi(useMetaApi, metaStart, metaEnd);
 
-  // Google date filter
+  // Google date filter & API
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
   const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
+  const [useGoogleApi, setUseGoogleApi] = useState(false);
+  const googleApi = useGoogleAdsApi(useGoogleApi, googleStart, googleEnd);
 
   const dateFilteredLeads = useMemo(
     () => filterByDateRange(effectiveAllLeads, (l) => l.createdAt, crmStart, crmEnd),
