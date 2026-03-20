@@ -4,7 +4,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const GOOGLE_ADS_API_VERSION = "v19";
+const GOOGLE_ADS_API_VERSION = "v23";
 
 interface TokenResponse {
   access_token: string;
@@ -70,6 +70,22 @@ function microsToCurrency(micros: string | number): number {
   return Number(micros) / 1_000_000;
 }
 
+function formatDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function buildDateFilter(since?: string, until?: string): string {
+  if (since && until) {
+    return `segments.date BETWEEN '${since}' AND '${until}'`;
+  }
+
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 89);
+
+  return `segments.date BETWEEN '${formatDate(start)}' AND '${formatDate(end)}'`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -86,19 +102,16 @@ Deno.serve(async (req) => {
       throw new Error("Missing Google Ads credentials. Required: GoogleAdsClienteID, GoogleAdsClientSecret, GOOGLE_ADS_REFRESH_TOKEN, GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_CUSTOMER_ID");
     }
 
-    // Remove hyphens from customer ID
     const cleanCustomerId = customerId.replace(/-/g, "");
 
     const url = new URL(req.url);
     const since = url.searchParams.get("since") || "";
     const until = url.searchParams.get("until") || "";
-    const report = url.searchParams.get("report") || "all"; // keywords, campaign, timeline, all
+    const report = url.searchParams.get("report") || "all";
 
     const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
 
-    const dateFilter = since && until
-      ? `segments.date BETWEEN '${since}' AND '${until}'`
-      : `segments.date DURING LAST_90_DAYS`;
+    const dateFilter = buildDateFilter(since || undefined, until || undefined);
 
     const responseData: Record<string, any> = {};
 
