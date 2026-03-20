@@ -50,6 +50,16 @@ const Dashboard = () => {
   const allLeads = useMemo(() => parseLeads(sheets.leadsCSV), [sheets.leadsCSV]);
   const allMetaAds = useMemo(() => parseMetaAds(sheets.metaAdsCSV), [sheets.metaAdsCSV]);
 
+  // Kommo CRM integration
+  const [useKommo, setUseKommo] = useState(false);
+  const kommo = useKommoData(useKommo);
+
+  // Effective leads: from Kommo API or CSV
+  const effectiveAllLeads = useMemo(() => {
+    if (useKommo && kommo.leads) return kommo.leads;
+    return allLeads;
+  }, [useKommo, kommo.leads, allLeads]);
+
   // CRM date filter
   const [crmStart, setCrmStart] = useState<Date | undefined>();
   const [crmEnd, setCrmEnd] = useState<Date | undefined>();
