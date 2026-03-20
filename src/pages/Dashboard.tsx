@@ -3,6 +3,7 @@ import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, 
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
 import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
 import { useKommoData } from "@/hooks/useKommoData";
+import { useGoogleAdsApi } from "@/hooks/useGoogleAdsApi";
 import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
