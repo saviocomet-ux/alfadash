@@ -22,11 +22,23 @@ interface GoogleAdsDashboardProps {
   endDate?: Date;
   keywordsCsvOverride?: string | null;
   timelineCsvOverride?: string | null;
+  apiData?: GoogleAdsApiData | null;
 }
 
-export function GoogleAdsDashboard({ startDate, endDate, keywordsCsvOverride, timelineCsvOverride }: GoogleAdsDashboardProps) {
-  const allTimeline = useMemo(() => parseGoogleAdsTimeline(timelineCsvOverride), [timelineCsvOverride]);
-  const allKeywords = useMemo(() => parseGoogleAdsKeywords(keywordsCsvOverride), [keywordsCsvOverride]);
+export function GoogleAdsDashboard({ startDate, endDate, keywordsCsvOverride, timelineCsvOverride, apiData }: GoogleAdsDashboardProps) {
+  const csvTimeline = useMemo(() => parseGoogleAdsTimeline(timelineCsvOverride), [timelineCsvOverride]);
+  const csvKeywords = useMemo(() => parseGoogleAdsKeywords(keywordsCsvOverride), [keywordsCsvOverride]);
+
+  // Use API data when available, otherwise fall back to CSV
+  const allTimeline = useMemo(() => {
+    if (apiData?.timeline) return apiData.timeline.map(t => ({ date: t.date, impressions: t.impressions }));
+    return csvTimeline;
+  }, [apiData, csvTimeline]);
+
+  const allKeywords = useMemo(() => {
+    if (apiData?.keywords) return apiData.keywords as unknown as ReturnType<typeof parseGoogleAdsKeywords>;
+    return csvKeywords;
+  }, [apiData, csvKeywords]);
 
   const timeline = useMemo(() => {
     if (!startDate && !endDate) return allTimeline;
