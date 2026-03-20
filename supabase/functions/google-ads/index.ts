@@ -37,29 +37,33 @@ async function googleAdsQuery(
   customerId: string,
   query: string
 ): Promise<any[]> {
-  const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}/googleAds:searchStream`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "developer-token": developerToken,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ query }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Google Ads API error [${res.status}]: ${body}`);
-  }
-  const data = await res.json();
-  // searchStream returns array of batches, each with results
-  const results: any[] = [];
-  if (Array.isArray(data)) {
-    data.forEach((batch: any) => {
-      if (batch.results) results.push(...batch.results);
+  const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}/googleAds:search`;
+  let allResults: any[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const body: Record<string, any> = { query, pageSize: 1000 };
+    if (pageToken) body.pageToken = pageToken;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "developer-token": developerToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     });
-  }
-  return results;
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Google Ads API error [${res.status}]: ${text}`);
+    }
+    const data = await res.json();
+    if (data.results) allResults.push(...data.results);
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return allResults;
 }
 
 function microsToCurrency(micros: string | number): number {
