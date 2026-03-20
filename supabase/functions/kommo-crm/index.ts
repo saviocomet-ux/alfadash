@@ -51,7 +51,9 @@ interface KommoUser {
 }
 
 async function kommoFetch(subdomain: string, token: string, path: string, params?: Record<string, string>) {
-  const url = new URL(`https://${subdomain}.kommo.com/api/v4/${path}`);
+  // Support both "mycompany" and "mycompany.kommo.com" formats
+  const host = subdomain.includes(".") ? subdomain : `${subdomain}.kommo.com`;
+  const url = new URL(`https://${host}/api/v4/${path}`);
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   }
