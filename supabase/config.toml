@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.kommo-crm]
 verify_jwt = false
+
+[functions.google-ads]
+verify_jwt = false
