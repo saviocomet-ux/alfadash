@@ -81,8 +81,8 @@ const Dashboard = () => {
   const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
 
   const dateFilteredLeads = useMemo(
-    () => filterByDateRange(allLeads, (l) => l.createdAt, crmStart, crmEnd),
-    [allLeads, crmStart, crmEnd]
+    () => filterByDateRange(effectiveAllLeads, (l) => l.createdAt, crmStart, crmEnd),
+    [effectiveAllLeads, crmStart, crmEnd]
   );
 
   // Apply source/campaign filters
@@ -94,8 +94,8 @@ const Dashboard = () => {
   }, [dateFilteredLeads, filterSource, filterCampaign]);
 
   // Unique sources and campaigns for filter dropdowns
-  const uniqueSources = useMemo(() => [...new Set(allLeads.map((l) => l.source).filter(Boolean))].sort(), [allLeads]);
-  const uniqueCampaigns = useMemo(() => [...new Set(allLeads.map((l) => l.campaign).filter(Boolean))].sort(), [allLeads]);
+  const uniqueSources = useMemo(() => [...new Set(effectiveAllLeads.map((l) => l.source).filter(Boolean))].sort(), [effectiveAllLeads]);
+  const uniqueCampaigns = useMemo(() => [...new Set(effectiveAllLeads.map((l) => l.campaign).filter(Boolean))].sort(), [effectiveAllLeads]);
 
   const stageStats = useMemo(() => getStageStats(leads), [leads]);
   const sourceStats = useMemo(() => getSourceStats(leads), [leads]);
