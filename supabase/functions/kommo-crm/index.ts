@@ -115,8 +115,9 @@ Deno.serve(async (req) => {
 
     // Build status map: statusId -> { name, pipelineName }
     const statusMap: Record<number, { name: string; pipeline: string }> = {};
-    pipelines.forEach((p) => {
-      (p.statuses || []).forEach((s) => {
+    pipelines.forEach((p: any) => {
+      const statuses = p._embedded?.statuses || p.statuses || [];
+      statuses.forEach((s: any) => {
         statusMap[s.id] = { name: s.name, pipeline: p.name };
       });
     });
