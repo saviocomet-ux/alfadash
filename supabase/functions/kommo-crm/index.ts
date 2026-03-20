@@ -176,12 +176,12 @@ Deno.serve(async (req) => {
 
       // Determine stage name
       let stageName = status?.name || "Sem etapa";
-      // Kommo uses status_id 142 for won and 143 for lost (system statuses)
-      // But the actual IDs vary, so we check by name patterns
+      // Kommo system statuses: 142 = won, 143 = lost
+      // Also match Portuguese names from the pipeline
       const stageNameLower = stageName.toLowerCase();
-      if (stageNameLower === "fechado e ganho" || stageNameLower === "successfully implemented" || stageNameLower === "closed won") {
+      if (lead.status_id === 142 || stageNameLower === "venda ganha" || stageNameLower === "fechado e ganho" || stageNameLower === "closed won") {
         stageName = "Closed - won";
-      } else if (stageNameLower === "fechado e perdido" || stageNameLower === "closed lost") {
+      } else if (lead.status_id === 143 || stageNameLower === "venda perdida" || stageNameLower === "fechado e perdido" || stageNameLower === "closed lost") {
         const lossReason = lead._embedded?.loss_reason?.[0]?.name || "Sem motivo";
         stageName = `Closed - lost (${lossReason})`;
       }
