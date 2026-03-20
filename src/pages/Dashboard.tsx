@@ -186,14 +186,43 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="crm" className="space-y-6">
-            {/* Date Filter */}
-            <DateRangeFilter
-              startDate={crmStart}
-              endDate={crmEnd}
-              onStartChange={setCrmStart}
-              onEndChange={setCrmEnd}
-              onClear={() => { setCrmStart(undefined); setCrmEnd(undefined); }}
-            />
+            {/* Kommo API Toggle + Date Filter */}
+            <div className="flex flex-wrap items-center gap-4">
+              <DateRangeFilter
+                startDate={crmStart}
+                endDate={crmEnd}
+                onStartChange={setCrmStart}
+                onEndChange={setCrmEnd}
+                onClear={() => { setCrmStart(undefined); setCrmEnd(undefined); }}
+              />
+              <div className="flex items-center gap-2 ml-auto">
+                <Switch id="kommo-toggle" checked={useKommo} onCheckedChange={setUseKommo} />
+                <Label htmlFor="kommo-toggle" className="text-xs font-medium text-muted-foreground">
+                  Kommo CRM (ao vivo)
+                </Label>
+                {useKommo && (
+                  <button
+                    onClick={() => kommo.fetch()}
+                    disabled={kommo.loading}
+                    className="ml-2 p-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                    title="Atualizar dados do Kommo"
+                  >
+                    {kommo.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />}
+                  </button>
+                )}
+              </div>
+            </div>
+            {kommo.error && (
+              <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-lg">
+                Erro ao buscar dados do Kommo: {kommo.error}
+              </div>
+            )}
+            {useKommo && kommo.loading && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Carregando dados do Kommo CRM...
+              </div>
+            )}
 
             {/* Source & Campaign Filters */}
             <div className="flex flex-wrap items-center gap-3">
