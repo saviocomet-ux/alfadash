@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
 import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
+import { useKommoData } from "@/hooks/useKommoData";
 import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -20,7 +21,9 @@ import { SheetsConfigDialog } from "@/components/dashboard/SheetsConfigDialog";
 import { useGoogleSheetsData } from "@/hooks/useGoogleSheetsData";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3, RefreshCw, Loader2 } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
