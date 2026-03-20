@@ -266,7 +266,7 @@ const Dashboard = () => {
 
             {/* KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total de Leads" value={leads.length} subtitle={allLeads.length !== leads.length ? `de ${allLeads.length} no total` : "Todos os leads importados"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
+              <KpiCard title="Total de Leads" value={leads.length} subtitle={effectiveAllLeads.length !== leads.length ? `de ${effectiveAllLeads.length} no total` : useKommo ? "Dados ao vivo do Kommo" : "Todos os leads importados"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
               <KpiCard title="Agendamentos" value={agendamentos} subtitle={`${safePercent(agendamentos)}% do total`} icon={<Calendar className="w-5 h-5 text-success" />} variant="success" />
               <KpiCard title="Negociações" value={negociacoes} subtitle={`${safePercent(negociacoes)}% do total`} icon={<Target className="w-5 h-5 text-warning" />} variant="warning" />
               <KpiCard title="Vendas Ganhas" value={vendasGanhas} subtitle={formatBRL(valorVendasGanhas)} icon={<CheckCircle className="w-5 h-5 text-info" />} variant="default" />
