@@ -242,12 +242,11 @@ export function MetaAdsDashboard({ startDate, endDate, data, loading, error, onR
               <tbody>
                 {adSetStats.map((s, i) => (
                   <tr key={i} className="border-b border-border/20 hover:bg-secondary/30 transition-colors">
-                    <td className="py-2 px-2 text-foreground font-medium">{s.adSet}</td>
+                    <td className="py-2 px-2 text-foreground font-medium">{s.name}</td>
                     <td className="py-2 px-2 text-right text-foreground font-mono">{formatBRL(s.spent)}</td>
                     <td className="py-2 px-2 text-right text-foreground font-mono">{s.results}</td>
                     <td className="py-2 px-2 text-right text-foreground font-mono">{s.clicks.toLocaleString("pt-BR")}</td>
                     <td className="py-2 px-2 text-right text-foreground font-mono">{s.reach.toLocaleString("pt-BR")}</td>
-                    <td className="py-2 px-2 text-right text-foreground font-mono">{s.impressions.toLocaleString("pt-BR")}</td>
                   </tr>
                 ))}
               </tbody>
