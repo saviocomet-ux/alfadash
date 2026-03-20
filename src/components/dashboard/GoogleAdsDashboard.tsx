@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { parseGoogleAdsTimeline, parseGoogleAdsKeywords, getGoogleAdsKpis, getAdGroupStats } from "@/data/parseGoogleAds";
+import { parseGoogleAdsTimeline, parseGoogleAdsKeywords, getGoogleAdsKpis, getAdGroupStats, GoogleAdsKeyword, GoogleAdsTimeline } from "@/data/parseGoogleAds";
+import { GoogleAdsApiData } from "@/hooks/useGoogleAdsApi";
 import { KpiCard } from "./KpiCard";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { format, parseISO } from "date-fns";
