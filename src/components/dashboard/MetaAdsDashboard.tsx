@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { parseMetaAds, getMetaKpis, getCampaignStats, getAdSetStats, MetaAd } from "@/data/parseMetaAds";
+import { getMetaKpis, getCampaignStats, getAdSetStats, MetaAd } from "@/data/parseMetaAds";
 import { KpiCard } from "./KpiCard";
-import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText, ArrowUpDown, Wifi, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
+import { DollarSign, Eye, MousePointerClick, Target, Users, BarChart3, MessageCircle, FileText, ArrowUpDown, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -43,38 +43,14 @@ const resultTypeBadge: Record<string, string> = {
 interface MetaAdsDashboardProps {
   startDate?: Date;
   endDate?: Date;
-  csvOverride?: string | null;
-  apiData?: MetaAd[] | null;
-  apiLoading?: boolean;
-  apiError?: string | null;
-  onFetchApi?: (since?: string, until?: string) => void;
-  useApi?: boolean;
-  onToggleApi?: (val: boolean) => void;
+  data: MetaAd[];
+  loading?: boolean;
+  error?: string | null;
+  onRefresh?: () => void;
 }
 
-export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, apiLoading, apiError, onFetchApi, useApi, onToggleApi }: MetaAdsDashboardProps) {
-  const csvAds = useMemo(() => parseMetaAds(csvOverride), [csvOverride]);
-  
-  // When API mode is active, ONLY show API data (empty array if not yet fetched)
-  const allAds = useApi ? (apiData || []) : csvAds;
-
-  // When using API, the date filtering is done server-side, so skip client filtering
-  const ads = useMemo(() => {
-    if (useApi) return allAds;
-    if (!startDate && !endDate) return allAds;
-    return allAds.filter((a) => {
-      if (!a.startDate) return false;
-      const d = new Date(a.startDate);
-      if (isNaN(d.getTime())) return false;
-      if (startDate && d < startDate) return false;
-      if (endDate) {
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        if (d > endOfDay) return false;
-      }
-      return true;
-    });
-  }, [allAds, startDate, endDate, useApi]);
+export function MetaAdsDashboard({ startDate, endDate, data, loading, error, onRefresh }: MetaAdsDashboardProps) {
+  const ads = data;
 
   const kpis = useMemo(() => getMetaKpis(ads), [ads]);
   const campaignStats = useMemo(() => getCampaignStats(ads), [ads]);
@@ -118,42 +94,32 @@ export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, api
 
   return (
     <div className="space-y-6">
-      {/* API Toggle */}
-      {onToggleApi && (
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Refresh button + status */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {onRefresh && (
           <button
-            onClick={() => onToggleApi(!useApi)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              useApi
-                ? "bg-success/15 text-success border border-success/30"
-                : "bg-secondary text-muted-foreground border border-border/50"
-            }`}
+            onClick={onRefresh}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50"
           >
-            {useApi ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-            {useApi ? "API Meta (ao vivo)" : "Dados CSV (estático)"}
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            {loading ? "Buscando..." : "Atualizar dados"}
           </button>
-          {useApi && onFetchApi && (
-            <button
-              onClick={() => {
-                const since = startDate ? startDate.toISOString().split("T")[0] : undefined;
-                const until = endDate ? endDate.toISOString().split("T")[0] : undefined;
-                onFetchApi(since, until);
-              }}
-              disabled={apiLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${apiLoading ? "animate-spin" : ""}`} />
-              {apiLoading ? "Buscando..." : "Atualizar dados"}
-            </button>
-          )}
-          {apiError && (
-            <div className="flex items-center gap-1.5 text-xs text-destructive">
-              <AlertCircle className="w-3.5 h-3.5" />
-              {apiError}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {error && (
+          <div className="flex items-center gap-1.5 text-xs text-destructive">
+            <AlertCircle className="w-3.5 h-3.5" />
+            {error}
+          </div>
+        )}
+        {loading && ads.length === 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Carregando dados do Meta Ads...
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           title="Total Investido"
@@ -170,133 +136,134 @@ export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, api
           variant="success"
         />
         <KpiCard
-          title="Leads (Formulário + Site)"
+          title="Leads (Formulário)"
           value={totalFormLeads}
           subtitle={totalFormLeads > 0 ? `CPL: ${formatBRL(totalFormSpent / totalFormLeads)}` : "Sem dados"}
           icon={<FileText className="w-5 h-5 text-accent" />}
           variant="default"
         />
-      </div>
-
-      {/* Secondary KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          title="Total de Resultados"
-          value={kpis.totalResults}
-          subtitle={`CPR médio: ${formatBRL(kpis.avgCPL)}`}
-          icon={<Target className="w-5 h-5 text-warning" />}
-          variant="warning"
-        />
         <KpiCard
           title="Alcance Total"
           value={kpis.totalReach.toLocaleString("pt-BR")}
           subtitle={`${kpis.totalImpressions.toLocaleString("pt-BR")} impressões`}
-          icon={<Eye className="w-5 h-5 text-primary" />}
+          icon={<Users className="w-5 h-5 text-primary" />}
           variant="primary"
         />
         <KpiCard
           title="Cliques"
           value={kpis.totalClicks.toLocaleString("pt-BR")}
-          subtitle={`CTR médio: ${kpis.avgCTR.toFixed(2)}%`}
-          icon={<MousePointerClick className="w-5 h-5 text-info" />}
-          variant="default"
+          subtitle={`CTR: ${kpis.avgCTR.toFixed(2)}%`}
+          icon={<MousePointerClick className="w-5 h-5 text-warning" />}
+          variant="warning"
         />
         <KpiCard
-          title="Leads de Formulário"
-          value={kpis.totalFormLeads}
-          subtitle="Via formulário nativo Meta"
-          icon={<FileText className="w-5 h-5 text-success" />}
-          variant="success"
+          title="CPM Médio"
+          value={formatBRL(kpis.totalImpressions > 0 ? (kpis.totalSpent / kpis.totalImpressions) * 1000 : 0)}
+          subtitle="Custo por mil impressões"
+          icon={<Eye className="w-5 h-5 text-info" />}
+          variant="default"
         />
       </div>
 
       {/* Result Type Breakdown */}
-      <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Target className="w-4 h-4 text-accent" />
-          Resultados por Tipo de Conversão
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {resultTypeStats.map((r) => (
-            <div key={r.type} className="rounded-lg border border-border/50 bg-secondary/30 p-4">
-              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-2 ${resultTypeBadge[r.type] || "bg-muted text-muted-foreground"}`}>
-                {r.label}
-              </span>
-              <div className="text-2xl font-bold text-foreground">{r.count}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Investido: {formatBRL(r.spent)} · CPR: {formatBRL(r.spent / r.count)}
+      {resultTypeStats.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Resultados por Tipo</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {resultTypeStats.map((r) => (
+              <div key={r.type} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border/30">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${resultTypeBadge[r.type] || "bg-muted text-muted-foreground"}`}>
+                    {r.label}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-foreground">{r.count}</span>
+                  <p className="text-[10px] text-muted-foreground">{formatBRL(r.spent)} · CPR: {r.count > 0 ? formatBRL(r.spent / r.count) : "—"}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Campaign spend + Status pie */}
-      <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-primary" />
-          Investimento por Campanha
-        </h3>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={campaignStats} layout="vertical" margin={{ left: 10, right: 20 }}>
-              <XAxis type="number" tickFormatter={(v) => `R$${v}`} tick={{ fill: "hsl(215, 20%, 55%)", fontSize: 11 }} />
-              <YAxis type="category" dataKey="name" width={180} tick={{ fill: "hsl(210, 40%, 85%)", fontSize: 10 }} />
-              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "hsl(210, 40%, 96%)" }} labelStyle={{ color: "hsl(210, 40%, 96%)" }} formatter={(v: number) => formatBRL(v)} />
-              <Bar dataKey="spent" name="Investido" radius={[0, 6, 6, 0]}>
-                {campaignStats.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+      {/* Campaign Spend Chart */}
+      {campaignStats.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Investimento por Campanha</h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={campaignStats} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <XAxis
+                  type="number"
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="campaign"
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                  width={200}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(value: number) => [formatBRL(value), "Investido"]}
+                />
+                <Bar dataKey="spent" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                  {campaignStats.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Ad Sets table */}
-      <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Users className="w-4 h-4 text-accent" />
-          Desempenho por Conjunto de Anúncios
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Conjunto</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Investido</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Resultados</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">CPL</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Cliques</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Alcance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {adSetStats.map((set) => (
-                <tr key={set.name} className="border-b border-border/30 hover:bg-secondary/50 transition-colors">
-                  <td className="py-3 px-3 font-medium text-foreground">{set.name}</td>
-                  <td className="py-3 px-3 text-right text-muted-foreground font-mono text-xs">{formatBRL(set.spent)}</td>
-                  <td className="py-3 px-3 text-right text-foreground">{set.results}</td>
-                  <td className="py-3 px-3 text-right text-muted-foreground font-mono text-xs">
-                    {set.results > 0 ? formatBRL(set.spent / set.results) : "—"}
-                  </td>
-                  <td className="py-3 px-3 text-right text-muted-foreground">{set.clicks.toLocaleString("pt-BR")}</td>
-                  <td className="py-3 px-3 text-right text-muted-foreground">{set.reach.toLocaleString("pt-BR")}</td>
+      {/* Ad Set Table */}
+      {adSetStats.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Performance por Conjunto de Anúncios</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border/50">
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Conjunto</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Investido</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Resultados</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Cliques</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Alcance</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Impressões</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {adSetStats.map((s, i) => (
+                  <tr key={i} className="border-b border-border/20 hover:bg-secondary/30 transition-colors">
+                    <td className="py-2 px-2 text-foreground font-medium">{s.adSet}</td>
+                    <td className="py-2 px-2 text-right text-foreground font-mono">{formatBRL(s.spent)}</td>
+                    <td className="py-2 px-2 text-right text-foreground font-mono">{s.results}</td>
+                    <td className="py-2 px-2 text-right text-foreground font-mono">{s.clicks.toLocaleString("pt-BR")}</td>
+                    <td className="py-2 px-2 text-right text-foreground font-mono">{s.reach.toLocaleString("pt-BR")}</td>
+                    <td className="py-2 px-2 text-right text-foreground font-mono">{s.impressions.toLocaleString("pt-BR")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* All Ads table */}
+      {/* All Ads Table */}
       <div className="glass-card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-foreground">Todos os Anúncios ({ads.length})</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Todos os Anúncios</h3>
           <div className="flex items-center gap-2">
             <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
             <Select value={sortField} onValueChange={setSortField}>
-              <SelectTrigger className="w-[140px] h-8 text-xs bg-secondary border-border/50">
+              <SelectTrigger className="w-[130px] h-7 text-xs bg-secondary border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -308,56 +275,38 @@ export function MetaAdsDashboard({ startDate, endDate, csvOverride, apiData, api
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border/50">
-                <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Anúncio</th>
-                <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Investido</th>
-                <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Tipo</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Result.</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">CPR</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Cliques</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">CTR</th>
-                <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">CPM</th>
+                <th className="text-left py-2 px-2 text-muted-foreground font-medium">Anúncio</th>
+                <th className="text-left py-2 px-2 text-muted-foreground font-medium">Campanha</th>
+                <th className="text-center py-2 px-2 text-muted-foreground font-medium">Status</th>
+                <th className="text-right py-2 px-2 text-muted-foreground font-medium">Investido</th>
+                <th className="text-right py-2 px-2 text-muted-foreground font-medium">Resultado</th>
+                <th className="text-right py-2 px-2 text-muted-foreground font-medium">CPR</th>
+                <th className="text-right py-2 px-2 text-muted-foreground font-medium">Cliques</th>
+                <th className="text-right py-2 px-2 text-muted-foreground font-medium">CTR</th>
               </tr>
             </thead>
             <tbody>
               {sortedAds.map((ad, i) => (
-                  <tr key={i} className="border-b border-border/30 hover:bg-secondary/50 transition-colors">
-                    <td className="py-3 px-3 font-medium text-foreground max-w-[200px] truncate">{ad.adName}</td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`px-2 py-1 rounded-md text-xs font-medium ${
-                          ad.status === "active"
-                            ? "bg-success/15 text-success"
-                            : ad.status === "not_delivering"
-                            ? "bg-warning/15 text-warning"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {ad.status === "active" ? "Ativo" : ad.status === "not_delivering" ? "Pausado" : "Inativo"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted-foreground font-mono text-xs">{formatBRL(ad.amountSpent)}</td>
-                    <td className="py-3 px-3">
-                      {ad.resultType ? (
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${resultTypeBadge[ad.resultType] || "bg-muted text-muted-foreground"}`}>
-                          {resultTypeLabels[ad.resultType] || ad.resultType}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-3 text-right text-foreground">{ad.results || "—"}</td>
-                    <td className="py-3 px-3 text-right text-muted-foreground font-mono text-xs">
-                      {ad.costPerResult > 0 ? formatBRL(ad.costPerResult) : "—"}
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted-foreground">{ad.linkClicks || "—"}</td>
-                    <td className="py-3 px-3 text-right text-muted-foreground text-xs">{ad.ctr > 0 ? `${ad.ctr.toFixed(2)}%` : "—"}</td>
-                    <td className="py-3 px-3 text-right text-muted-foreground font-mono text-xs">{ad.cpm > 0 ? formatBRL(ad.cpm) : "—"}</td>
-                  </tr>
-                ))}
+                <tr key={i} className="border-b border-border/20 hover:bg-secondary/30 transition-colors">
+                  <td className="py-2 px-2 text-foreground font-medium max-w-[200px] truncate" title={ad.adName}>{ad.adName}</td>
+                  <td className="py-2 px-2 text-muted-foreground max-w-[150px] truncate" title={ad.campaign}>{ad.campaign}</td>
+                  <td className="py-2 px-2 text-center">
+                    <span className={`inline-block w-2 h-2 rounded-full ${ad.status === "active" ? "bg-success" : ad.status === "not_delivering" ? "bg-warning" : "bg-muted-foreground/50"}`} />
+                  </td>
+                  <td className="py-2 px-2 text-right text-foreground font-mono">{formatBRL(ad.amountSpent)}</td>
+                  <td className="py-2 px-2 text-right text-foreground font-mono">
+                    {ad.results > 0 ? ad.results : "—"}
+                  </td>
+                  <td className="py-2 px-2 text-right text-foreground font-mono">
+                    {ad.costPerResult > 0 ? formatBRL(ad.costPerResult) : "—"}
+                  </td>
+                  <td className="py-2 px-2 text-right text-foreground font-mono">{ad.linkClicks || "—"}</td>
+                  <td className="py-2 px-2 text-right text-foreground font-mono">{ad.ctr > 0 ? `${ad.ctr.toFixed(2)}%` : "—"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

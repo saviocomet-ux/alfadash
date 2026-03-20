@@ -1,18 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import Papa from "papaparse";
 
 const STORAGE_KEY = "sheets-config";
 
 export interface SheetsConfig {
-  leadsUrl: string;
-  metaAdsUrl: string;
   googleAdsKeywordsUrl: string;
   googleAdsTimelineUrl: string;
 }
 
 const DEFAULT_CONFIG: SheetsConfig = {
-  leadsUrl: "",
-  metaAdsUrl: "",
   googleAdsKeywordsUrl: "",
   googleAdsTimelineUrl: "",
 };
@@ -30,7 +25,7 @@ export function saveSheetsConfig(config: SheetsConfig) {
 }
 
 export function hasAnySheetsUrl(config: SheetsConfig): boolean {
-  return !!(config.leadsUrl || config.metaAdsUrl || config.googleAdsKeywordsUrl || config.googleAdsTimelineUrl);
+  return !!(config.googleAdsKeywordsUrl || config.googleAdsTimelineUrl);
 }
 
 async function fetchCSV(url: string): Promise<string | null> {
@@ -46,8 +41,6 @@ async function fetchCSV(url: string): Promise<string | null> {
 }
 
 interface SheetData {
-  leadsCSV: string | null;
-  metaAdsCSV: string | null;
   googleAdsKeywordsCSV: string | null;
   googleAdsTimelineCSV: string | null;
   loading: boolean;
@@ -59,8 +52,6 @@ interface SheetData {
 
 export function useGoogleSheetsData(): SheetData {
   const [config, setConfig] = useState<SheetsConfig>(getSheetsConfig);
-  const [leadsCSV, setLeadsCSV] = useState<string | null>(null);
-  const [metaAdsCSV, setMetaAdsCSV] = useState<string | null>(null);
   const [googleAdsKeywordsCSV, setGoogleAdsKeywordsCSV] = useState<string | null>(null);
   const [googleAdsTimelineCSV, setGoogleAdsTimelineCSV] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -73,14 +64,10 @@ export function useGoogleSheetsData(): SheetData {
     setLoading(true);
     setError(null);
     try {
-      const [leads, meta, keywords, timeline] = await Promise.all([
-        fetchCSV(cfg.leadsUrl),
-        fetchCSV(cfg.metaAdsUrl),
+      const [keywords, timeline] = await Promise.all([
         fetchCSV(cfg.googleAdsKeywordsUrl),
         fetchCSV(cfg.googleAdsTimelineUrl),
       ]);
-      setLeadsCSV(leads);
-      setMetaAdsCSV(meta);
       setGoogleAdsKeywordsCSV(keywords);
       setGoogleAdsTimelineCSV(timeline);
     } catch (e: any) {
@@ -97,13 +84,10 @@ export function useGoogleSheetsData(): SheetData {
   const updateConfig = useCallback((newConfig: SheetsConfig) => {
     saveSheetsConfig(newConfig);
     setConfig(newConfig);
-    // Trigger refetch
     setTimeout(() => fetchAll(), 100);
   }, [fetchAll]);
 
   return {
-    leadsCSV,
-    metaAdsCSV,
     googleAdsKeywordsCSV,
     googleAdsTimelineCSV,
     loading,

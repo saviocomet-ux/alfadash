@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
-import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
+import { getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
+import { getMetaKpis, MetaAd } from "@/data/parseMetaAds";
 import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
 import { useKommoData } from "@/hooks/useKommoData";
 import { useGoogleAdsApi } from "@/hooks/useGoogleAdsApi";
@@ -46,20 +46,18 @@ function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const Dashboard = () => {
+  // Google Sheets — only for Google Ads now
   const sheets = useGoogleSheetsData();
 
-  const allLeads = useMemo(() => parseLeads(sheets.leadsCSV), [sheets.leadsCSV]);
-  const allMetaAds = useMemo(() => parseMetaAds(sheets.metaAdsCSV), [sheets.metaAdsCSV]);
+  // CRM: always from Kommo API
+  const kommo = useKommoData(true);
+  const effectiveAllLeads = useMemo(() => kommo.leads || [], [kommo.leads]);
 
-  // Kommo CRM integration
-  const [useKommo, setUseKommo] = useState(false);
-  const kommo = useKommoData(useKommo);
-
-  // Effective leads: from Kommo API or CSV
-  const effectiveAllLeads = useMemo(() => {
-    if (useKommo && kommo.leads) return kommo.leads;
-    return allLeads;
-  }, [useKommo, kommo.leads, allLeads]);
+  // Meta Ads: always from API
+  const [metaStart, setMetaStart] = useState<Date | undefined>();
+  const [metaEnd, setMetaEnd] = useState<Date | undefined>();
+  const metaApi = useMetaAdsApi(true, metaStart, metaEnd);
+  const metaAds: MetaAd[] = useMemo(() => metaApi.data || [], [metaApi.data]);
 
   // CRM date filter
   const [crmStart, setCrmStart] = useState<Date | undefined>();
@@ -68,14 +66,6 @@ const Dashboard = () => {
   // Source/campaign filters
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterCampaign, setFilterCampaign] = useState<string>("all");
-
-  // Meta date filter
-  const [metaStart, setMetaStart] = useState<Date | undefined>();
-  const [metaEnd, setMetaEnd] = useState<Date | undefined>();
-  const [useMetaApi, setUseMetaApi] = useState(false);
-
-  // Meta API hook
-  const metaApi = useMetaAdsApi(useMetaApi, metaStart, metaEnd);
 
   // Google date filter & API
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
@@ -112,13 +102,15 @@ const Dashboard = () => {
   const valorVendasGanhas = wonLeads.reduce((sum, l) => sum + l.value, 0);
   const safePercent = (n: number) => leads.length > 0 ? ((n / leads.length) * 100).toFixed(1) : "0";
 
-  // Meta Ads + Google Ads total spent
-  const metaKpis = useMemo(() => getMetaKpis(allMetaAds), [allMetaAds]);
+  // Meta Ads KPIs from API data
+  const metaKpis = useMemo(() => getMetaKpis(metaAds), [metaAds]);
+  
+  // Google Ads from Sheets/CSV
   const googleKeywords = useMemo(() => parseGoogleAdsKeywords(sheets.googleAdsKeywordsCSV), [sheets.googleAdsKeywordsCSV]);
   const googleKpis = useMemo(() => getGoogleAdsKpis(googleKeywords), [googleKeywords]);
   const totalInvestido = metaKpis.totalSpent + googleKpis.totalCost;
 
-  // Tempo médio de fechamento (dias entre criação e modificação para won leads)
+  // Tempo médio de fechamento
   const tempoMedioFechamento = useMemo(() => {
     const tempos = wonLeads
       .filter((l) => l.createdAt && l.modifiedAt)
@@ -131,9 +123,7 @@ const Dashboard = () => {
     return tempos.length > 0 ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
   }, [wonLeads]);
 
-  // ROI = (Revenue - Cost) / Cost * 100
   const roi = totalInvestido > 0 ? ((valorVendasGanhas - totalInvestido) / totalInvestido) * 100 : 0;
-  // ROAS = Revenue / Cost
   const roas = totalInvestido > 0 ? valorVendasGanhas / totalInvestido : 0;
 
   const hasFilters = filterSource !== "all" || filterCampaign !== "all";
@@ -189,7 +179,7 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="crm" className="space-y-6">
-            {/* Kommo API Toggle + Date Filter */}
+            {/* CRM Header: Date Filter + Refresh */}
             <div className="flex flex-wrap items-center gap-4">
               <DateRangeFilter
                 startDate={crmStart}
@@ -199,20 +189,15 @@ const Dashboard = () => {
                 onClear={() => { setCrmStart(undefined); setCrmEnd(undefined); }}
               />
               <div className="flex items-center gap-2 ml-auto">
-                <Switch id="kommo-toggle" checked={useKommo} onCheckedChange={setUseKommo} />
-                <Label htmlFor="kommo-toggle" className="text-xs font-medium text-muted-foreground">
-                  Kommo CRM (ao vivo)
-                </Label>
-                {useKommo && (
-                  <button
-                    onClick={() => kommo.fetch()}
-                    disabled={kommo.loading}
-                    className="ml-2 p-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                    title="Atualizar dados do Kommo"
-                  >
-                    {kommo.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />}
-                  </button>
-                )}
+                <button
+                  onClick={() => kommo.fetch()}
+                  disabled={kommo.loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50"
+                  title="Atualizar dados do Kommo"
+                >
+                  {kommo.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {kommo.loading ? "Atualizando..." : "Atualizar CRM"}
+                </button>
               </div>
             </div>
             {kommo.error && (
@@ -220,10 +205,10 @@ const Dashboard = () => {
                 Erro ao buscar dados do Kommo: {kommo.error}
               </div>
             )}
-            {useKommo && kommo.loading && (
+            {kommo.loading && effectiveAllLeads.length === 0 && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Carregando dados do Kommo CRM...
+                Carregando dados do CRM...
               </div>
             )}
 
@@ -269,7 +254,7 @@ const Dashboard = () => {
 
             {/* KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total de Leads" value={leads.length} subtitle={effectiveAllLeads.length !== leads.length ? `de ${effectiveAllLeads.length} no total` : useKommo ? "Dados ao vivo do Kommo" : "Todos os leads importados"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
+              <KpiCard title="Total de Leads" value={leads.length} subtitle={effectiveAllLeads.length !== leads.length ? `de ${effectiveAllLeads.length} no total` : "Dados ao vivo do CRM"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
               <KpiCard title="Agendamentos" value={agendamentos} subtitle={`${safePercent(agendamentos)}% do total`} icon={<Calendar className="w-5 h-5 text-success" />} variant="success" />
               <KpiCard title="Negociações" value={negociacoes} subtitle={`${safePercent(negociacoes)}% do total`} icon={<Target className="w-5 h-5 text-warning" />} variant="warning" />
               <KpiCard title="Vendas Ganhas" value={vendasGanhas} subtitle={formatBRL(valorVendasGanhas)} icon={<CheckCircle className="w-5 h-5 text-info" />} variant="default" />
@@ -342,13 +327,14 @@ const Dashboard = () => {
               <MetaAdsDashboard
                 startDate={metaStart}
                 endDate={metaEnd}
-                csvOverride={sheets.metaAdsCSV}
-                apiData={metaApi.data}
-                apiLoading={metaApi.loading}
-                apiError={metaApi.error}
-                onFetchApi={metaApi.fetchFromApi}
-                useApi={useMetaApi}
-                onToggleApi={setUseMetaApi}
+                data={metaAds}
+                loading={metaApi.loading}
+                error={metaApi.error}
+                onRefresh={() => {
+                  const since = metaStart ? metaStart.toISOString().split("T")[0] : undefined;
+                  const until = metaEnd ? metaEnd.toISOString().split("T")[0] : undefined;
+                  metaApi.fetchFromApi(since, until);
+                }}
               />
             </div>
           </TabsContent>
@@ -400,7 +386,7 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           <TabsContent value="cohort">
-            <CohortMatrix leads={effectiveAllLeads} metaAds={allMetaAds} googleKeywords={googleKeywords} />
+            <CohortMatrix leads={effectiveAllLeads} metaAds={metaAds} googleKeywords={googleKeywords} />
           </TabsContent>
         </Tabs>
       </main>
