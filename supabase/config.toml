@@ -2,3 +2,6 @@ project_id = "ppxavkvandsqffxfgkdr"
 
 [functions.meta-ads]
 verify_jwt = false
+
+[functions.kommo-crm]
+verify_jwt = false
