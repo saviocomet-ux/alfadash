@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { parseLeads, getStageStats, getSourceStats, getDailyLeads, getTopTerms, Lead } from "@/data/parseLeads";
 import { parseMetaAds, getMetaKpis } from "@/data/parseMetaAds";
 import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
+import { useKommoData } from "@/hooks/useKommoData";
 import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -20,7 +21,9 @@ import { SheetsConfigDialog } from "@/components/dashboard/SheetsConfigDialog";
 import { useGoogleSheetsData } from "@/hooks/useGoogleSheetsData";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3, RefreshCw, Loader2 } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
   if (!start && !end) return items;
@@ -47,6 +50,16 @@ const Dashboard = () => {
   const allLeads = useMemo(() => parseLeads(sheets.leadsCSV), [sheets.leadsCSV]);
   const allMetaAds = useMemo(() => parseMetaAds(sheets.metaAdsCSV), [sheets.metaAdsCSV]);
 
+  // Kommo CRM integration
+  const [useKommo, setUseKommo] = useState(false);
+  const kommo = useKommoData(useKommo);
+
+  // Effective leads: from Kommo API or CSV
+  const effectiveAllLeads = useMemo(() => {
+    if (useKommo && kommo.leads) return kommo.leads;
+    return allLeads;
+  }, [useKommo, kommo.leads, allLeads]);
+
   // CRM date filter
   const [crmStart, setCrmStart] = useState<Date | undefined>();
   const [crmEnd, setCrmEnd] = useState<Date | undefined>();
@@ -68,8 +81,8 @@ const Dashboard = () => {
   const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
 
   const dateFilteredLeads = useMemo(
-    () => filterByDateRange(allLeads, (l) => l.createdAt, crmStart, crmEnd),
-    [allLeads, crmStart, crmEnd]
+    () => filterByDateRange(effectiveAllLeads, (l) => l.createdAt, crmStart, crmEnd),
+    [effectiveAllLeads, crmStart, crmEnd]
   );
 
   // Apply source/campaign filters
@@ -81,8 +94,8 @@ const Dashboard = () => {
   }, [dateFilteredLeads, filterSource, filterCampaign]);
 
   // Unique sources and campaigns for filter dropdowns
-  const uniqueSources = useMemo(() => [...new Set(allLeads.map((l) => l.source).filter(Boolean))].sort(), [allLeads]);
-  const uniqueCampaigns = useMemo(() => [...new Set(allLeads.map((l) => l.campaign).filter(Boolean))].sort(), [allLeads]);
+  const uniqueSources = useMemo(() => [...new Set(effectiveAllLeads.map((l) => l.source).filter(Boolean))].sort(), [effectiveAllLeads]);
+  const uniqueCampaigns = useMemo(() => [...new Set(effectiveAllLeads.map((l) => l.campaign).filter(Boolean))].sort(), [effectiveAllLeads]);
 
   const stageStats = useMemo(() => getStageStats(leads), [leads]);
   const sourceStats = useMemo(() => getSourceStats(leads), [leads]);
@@ -173,14 +186,43 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="crm" className="space-y-6">
-            {/* Date Filter */}
-            <DateRangeFilter
-              startDate={crmStart}
-              endDate={crmEnd}
-              onStartChange={setCrmStart}
-              onEndChange={setCrmEnd}
-              onClear={() => { setCrmStart(undefined); setCrmEnd(undefined); }}
-            />
+            {/* Kommo API Toggle + Date Filter */}
+            <div className="flex flex-wrap items-center gap-4">
+              <DateRangeFilter
+                startDate={crmStart}
+                endDate={crmEnd}
+                onStartChange={setCrmStart}
+                onEndChange={setCrmEnd}
+                onClear={() => { setCrmStart(undefined); setCrmEnd(undefined); }}
+              />
+              <div className="flex items-center gap-2 ml-auto">
+                <Switch id="kommo-toggle" checked={useKommo} onCheckedChange={setUseKommo} />
+                <Label htmlFor="kommo-toggle" className="text-xs font-medium text-muted-foreground">
+                  Kommo CRM (ao vivo)
+                </Label>
+                {useKommo && (
+                  <button
+                    onClick={() => kommo.fetch()}
+                    disabled={kommo.loading}
+                    className="ml-2 p-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                    title="Atualizar dados do Kommo"
+                  >
+                    {kommo.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />}
+                  </button>
+                )}
+              </div>
+            </div>
+            {kommo.error && (
+              <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-lg">
+                Erro ao buscar dados do Kommo: {kommo.error}
+              </div>
+            )}
+            {useKommo && kommo.loading && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Carregando dados do Kommo CRM...
+              </div>
+            )}
 
             {/* Source & Campaign Filters */}
             <div className="flex flex-wrap items-center gap-3">
@@ -224,7 +266,7 @@ const Dashboard = () => {
 
             {/* KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total de Leads" value={leads.length} subtitle={allLeads.length !== leads.length ? `de ${allLeads.length} no total` : "Todos os leads importados"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
+              <KpiCard title="Total de Leads" value={leads.length} subtitle={effectiveAllLeads.length !== leads.length ? `de ${effectiveAllLeads.length} no total` : useKommo ? "Dados ao vivo do Kommo" : "Todos os leads importados"} icon={<Users className="w-5 h-5 text-primary" />} variant="primary" />
               <KpiCard title="Agendamentos" value={agendamentos} subtitle={`${safePercent(agendamentos)}% do total`} icon={<Calendar className="w-5 h-5 text-success" />} variant="success" />
               <KpiCard title="Negociações" value={negociacoes} subtitle={`${safePercent(negociacoes)}% do total`} icon={<Target className="w-5 h-5 text-warning" />} variant="warning" />
               <KpiCard title="Vendas Ganhas" value={vendasGanhas} subtitle={formatBRL(valorVendasGanhas)} icon={<CheckCircle className="w-5 h-5 text-info" />} variant="default" />
@@ -320,7 +362,7 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           <TabsContent value="cohort">
-            <CohortMatrix leads={allLeads} metaAds={allMetaAds} googleKeywords={googleKeywords} />
+            <CohortMatrix leads={effectiveAllLeads} metaAds={allMetaAds} googleKeywords={googleKeywords} />
           </TabsContent>
         </Tabs>
       </main>
