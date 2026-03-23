@@ -380,7 +380,7 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           <TabsContent value="cohort">
-            <CohortMatrix leads={effectiveAllLeads} metaAds={metaAds} googleKeywords={googleKeywords} />
+            <CohortMatrix leads={effectiveAllLeads} metaAds={metaAds} googleKeywords={googleApi.data?.keywords as any[] || []} />
           </TabsContent>
         </Tabs>
       </main>
