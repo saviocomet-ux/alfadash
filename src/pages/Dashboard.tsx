@@ -4,7 +4,7 @@ import { getMetaKpis, MetaAd } from "@/data/parseMetaAds";
 import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
 import { useKommoData } from "@/hooks/useKommoData";
 import { useGoogleAdsApi } from "@/hooks/useGoogleAdsApi";
-import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
+import { getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { StageChart } from "@/components/dashboard/StageChart";

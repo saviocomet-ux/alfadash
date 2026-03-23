@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { parseGoogleAdsTimeline, parseGoogleAdsKeywords, getGoogleAdsKpis, getAdGroupStats, GoogleAdsKeyword, GoogleAdsTimeline } from "@/data/parseGoogleAds";
+import { getGoogleAdsKpis, getAdGroupStats } from "@/data/parseGoogleAds";
 import { GoogleAdsApiData } from "@/hooks/useGoogleAdsApi";
 import { KpiCard } from "./KpiCard";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
@@ -20,25 +20,19 @@ const tooltipStyle = {
 interface GoogleAdsDashboardProps {
   startDate?: Date;
   endDate?: Date;
-  keywordsCsvOverride?: string | null;
-  timelineCsvOverride?: string | null;
   apiData?: GoogleAdsApiData | null;
 }
 
-export function GoogleAdsDashboard({ startDate, endDate, keywordsCsvOverride, timelineCsvOverride, apiData }: GoogleAdsDashboardProps) {
-  const csvTimeline = useMemo(() => parseGoogleAdsTimeline(timelineCsvOverride), [timelineCsvOverride]);
-  const csvKeywords = useMemo(() => parseGoogleAdsKeywords(keywordsCsvOverride), [keywordsCsvOverride]);
-
-  // Use API data when available, otherwise fall back to CSV
+export function GoogleAdsDashboard({ startDate, endDate, apiData }: GoogleAdsDashboardProps) {
   const allTimeline = useMemo(() => {
     if (apiData?.timeline) return apiData.timeline.map(t => ({ date: t.date, impressions: t.impressions }));
-    return csvTimeline;
-  }, [apiData, csvTimeline]);
+    return [];
+  }, [apiData]);
 
   const allKeywords = useMemo(() => {
-    if (apiData?.keywords) return apiData.keywords as unknown as ReturnType<typeof parseGoogleAdsKeywords>;
-    return csvKeywords;
-  }, [apiData, csvKeywords]);
+    if (apiData?.keywords) return apiData.keywords as any[];
+    return [];
+  }, [apiData]);
 
   const timeline = useMemo(() => {
     if (!startDate && !endDate) return allTimeline;
@@ -50,7 +44,6 @@ export function GoogleAdsDashboard({ startDate, endDate, keywordsCsvOverride, ti
     });
   }, [allTimeline, startDate, endDate]);
 
-  // Note: keywords don't have dates, so they aren't date-filtered
   const keywords = allKeywords;
 
   const kpis = useMemo(() => getGoogleAdsKpis(keywords), [keywords]);
