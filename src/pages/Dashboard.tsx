@@ -104,9 +104,11 @@ const Dashboard = () => {
   // Meta Ads KPIs from API data
   const metaKpis = useMemo(() => getMetaKpis(metaAds), [metaAds]);
   
-  // Google Ads from Sheets/CSV
-  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(sheets.googleAdsKeywordsCSV), [sheets.googleAdsKeywordsCSV]);
-  const googleKpis = useMemo(() => getGoogleAdsKpis(googleKeywords), [googleKeywords]);
+  // Google Ads KPIs from API
+  const googleKpis = useMemo(() => {
+    if (googleApi.data?.keywords) return getGoogleAdsKpis(googleApi.data.keywords as any[]);
+    return { totalImpressions: 0, totalClicks: 0, totalCost: 0, avgCPC: 0, avgCTR: 0, totalConversions: 0, conversionRate: 0, costPerConversion: 0 };
+  }, [googleApi.data]);
   const totalInvestido = metaKpis.totalSpent + googleKpis.totalCost;
 
   // Tempo médio de fechamento
