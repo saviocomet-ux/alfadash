@@ -42,8 +42,6 @@ function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const Dashboard = () => {
-  // Google Sheets — only for Google Ads now
-  const sheets = useGoogleSheetsData();
 
   // CRM: always from Kommo API
   const kommo = useKommoData(true);
