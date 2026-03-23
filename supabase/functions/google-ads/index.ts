@@ -42,7 +42,7 @@ async function googleAdsQuery(
   let pageToken: string | undefined;
 
   do {
-    const body: Record<string, any> = { query, pageSize: 1000 };
+    const body: Record<string, any> = { query };
     if (pageToken) body.pageToken = pageToken;
 
     const res = await fetch(url, {
