@@ -63,8 +63,8 @@ export function GoogleAdsDashboard({ startDate, endDate, apiData }: GoogleAdsDas
     [keywords]
   );
 
-  const activeCount = keywords.filter((k) => k.status === "Ativado").length;
-  const qualifiedCount = keywords.filter((k) => k.qualityStatus === "Qualificado").length;
+  const activeCount = keywords.filter((k) => k.status === "ENABLED" || k.status === "Ativado").length;
+  const qualifiedCount = keywords.length;
 
   return (
     <div className="space-y-6">
