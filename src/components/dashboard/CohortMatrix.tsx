@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Lead } from "@/data/parseLeads";
 import { MetaAd } from "@/data/parseMetaAds";
-import { GoogleAdsKeyword } from "@/data/parseGoogleAds";
+import { GoogleAdsApiTimeline } from "@/hooks/useGoogleAdsApi";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from "recharts";
@@ -26,7 +26,7 @@ function getMonthLabel(key: string): string {
 interface CohortMatrixProps {
   leads: Lead[];
   metaAds: MetaAd[];
-  googleKeywords: GoogleAdsKeyword[];
+  googleTimeline: GoogleAdsApiTimeline[];
 }
 
 interface CohortCell {
@@ -34,9 +34,31 @@ interface CohortCell {
   salesValue: number;
 }
 
-export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixProps) {
+export function CohortMatrix({ leads, metaAds, googleTimeline }: CohortMatrixProps) {
+  // Monthly ad spend: Meta + Google
+  const monthlySpend = useMemo(() => {
+    const spend: Record<string, { meta: number; google: number }> = {};
+
+    // Meta: aggregate amountSpent by startDate month
+    metaAds.forEach((ad) => {
+      const mk = getMonthKey(ad.startDate);
+      if (!mk) return;
+      if (!spend[mk]) spend[mk] = { meta: 0, google: 0 };
+      spend[mk].meta += ad.amountSpent;
+    });
+
+    // Google: aggregate cost by date month
+    googleTimeline.forEach((t) => {
+      const mk = getMonthKey(t.date);
+      if (!mk) return;
+      if (!spend[mk]) spend[mk] = { meta: 0, google: 0 };
+      spend[mk].google += t.cost;
+    });
+
+    return spend;
+  }, [metaAds, googleTimeline]);
+
   const { matrix, creationMonths, closeMonths, rowTotals, colTotals, grandTotal } = useMemo(() => {
-    // Build cohort matrix: rows = creation month, cols = close month
     const matrix: Record<string, Record<string, CohortCell>> = {};
     const creationSet = new Set<string>();
     const closeSet = new Set<string>();
@@ -45,16 +67,12 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
       const createKey = getMonthKey(l.createdAt);
       if (!createKey) return;
       creationSet.add(createKey);
-
-      // Count as lead in creation month
       if (!matrix[createKey]) matrix[createKey] = {};
 
-      // Check if won and has a close date
       if (l.stage.toLowerCase().startsWith("closed - won") && l.closedAt) {
         const closeKey = getMonthKey(l.closedAt);
         if (!closeKey) return;
         closeSet.add(closeKey);
-
         if (!matrix[createKey][closeKey]) {
           matrix[createKey][closeKey] = { salesCount: 0, salesValue: 0 };
         }
@@ -66,7 +84,6 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
     const creationMonths = Array.from(creationSet).sort();
     const closeMonths = Array.from(new Set([...creationSet, ...closeSet])).sort();
 
-    // Row totals (per creation month)
     const rowTotals: Record<string, { leads: number; sales: number; value: number }> = {};
     creationMonths.forEach((cm) => {
       const monthLeads = leads.filter((l) => getMonthKey(l.createdAt) === cm);
@@ -75,7 +92,6 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
       rowTotals[cm] = { leads: monthLeads.length, sales, value };
     });
 
-    // Column totals
     const colTotals: Record<string, { sales: number; value: number }> = {};
     closeMonths.forEach((clm) => {
       const sales = creationMonths.reduce((s, cm) => s + (matrix[cm]?.[clm]?.salesCount || 0), 0);
@@ -114,7 +130,34 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
     }).filter((d) => d.count > 0);
   }, [leads, creationMonths]);
 
-  // Find max cell value for heatmap intensity
+  // ROI per cohort month (spend from creation month vs revenue from that cohort)
+  const cohortRoi = useMemo(() => {
+    return creationMonths.map((cm) => {
+      const rt = rowTotals[cm];
+      const sp = monthlySpend[cm];
+      const totalSpend = sp ? sp.meta + sp.google : 0;
+      const roi = totalSpend > 0 ? ((rt.value - totalSpend) / totalSpend) * 100 : 0;
+      const roas = totalSpend > 0 ? rt.value / totalSpend : 0;
+      return {
+        month: getMonthLabel(cm),
+        metaSpend: sp?.meta || 0,
+        googleSpend: sp?.google || 0,
+        totalSpend,
+        revenue: rt.value,
+        roi,
+        roas,
+        sales: rt.sales,
+      };
+    }).filter((d) => d.totalSpend > 0 || d.revenue > 0);
+  }, [creationMonths, rowTotals, monthlySpend]);
+
+  // Total spend
+  const totalMetaSpend = Object.values(monthlySpend).reduce((s, sp) => s + sp.meta, 0);
+  const totalGoogleSpend = Object.values(monthlySpend).reduce((s, sp) => s + sp.google, 0);
+  const totalSpend = totalMetaSpend + totalGoogleSpend;
+  const overallRoi = totalSpend > 0 ? ((grandTotal.value - totalSpend) / totalSpend) * 100 : 0;
+  const overallRoas = totalSpend > 0 ? grandTotal.value / totalSpend : 0;
+
   const maxCellValue = useMemo(() => {
     let max = 0;
     creationMonths.forEach((cm) => {
@@ -135,7 +178,7 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
   return (
     <div className="space-y-6">
       {/* Summary KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="glass-card p-4 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Leads</p>
           <p className="text-2xl font-bold text-foreground">{grandTotal.leads}</p>
@@ -148,16 +191,75 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
           </p>
         </div>
         <div className="glass-card p-4 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Valor Total</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Receita Total</p>
           <p className="text-2xl font-bold text-foreground">{formatBRL(grandTotal.value)}</p>
         </div>
         <div className="glass-card p-4 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Ticket Médio</p>
-          <p className="text-2xl font-bold text-foreground">
-            {grandTotal.sales > 0 ? formatBRL(grandTotal.value / grandTotal.sales) : "—"}
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Investimento</p>
+          <p className="text-2xl font-bold text-foreground">{formatBRL(totalSpend)}</p>
+          <p className="text-xs text-muted-foreground">
+            Meta: {formatBRL(totalMetaSpend)} · Google: {formatBRL(totalGoogleSpend)}
           </p>
         </div>
+        <div className="glass-card p-4 text-center">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">ROI</p>
+          <p className={`text-2xl font-bold ${overallRoi >= 0 ? "text-success" : "text-destructive"}`}>
+            {overallRoi.toFixed(1)}%
+          </p>
+        </div>
+        <div className="glass-card p-4 text-center">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">ROAS</p>
+          <p className="text-2xl font-bold text-foreground">{overallRoas.toFixed(2)}x</p>
+        </div>
       </div>
+
+      {/* ROI per Cohort Chart */}
+      {cohortRoi.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-1">ROI por Safra (Cohort)</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Investimento (Meta + Google) vs Receita de vendas, agrupados pelo mês de criação do lead
+          </p>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50">
+                  <TableHead className="text-muted-foreground text-xs">Mês</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Meta Ads</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Google Ads</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Total Investido</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Receita</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">Vendas</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">ROI</TableHead>
+                  <TableHead className="text-muted-foreground text-xs text-right">ROAS</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cohortRoi.map((r) => (
+                  <TableRow key={r.month} className="border-border/30 hover:bg-secondary/30">
+                    <TableCell className="text-xs font-medium text-foreground">{r.month}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground text-right font-mono">{formatBRL(r.metaSpend)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground text-right font-mono">{formatBRL(r.googleSpend)}</TableCell>
+                    <TableCell className="text-xs text-foreground text-right font-mono font-semibold">{formatBRL(r.totalSpend)}</TableCell>
+                    <TableCell className="text-xs text-foreground text-right font-mono font-semibold">{formatBRL(r.revenue)}</TableCell>
+                    <TableCell className="text-xs text-foreground text-right font-mono">{r.sales}</TableCell>
+                    <TableCell className="text-xs text-right font-mono">
+                      <span className={r.roi >= 0 ? "text-success font-semibold" : "text-destructive font-semibold"}>
+                        {r.roi.toFixed(1)}%
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs text-right font-mono">
+                      <span className={r.roas >= 1 ? "text-success" : "text-warning"}>
+                        {r.roas.toFixed(2)}x
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       {/* Cohort Matrix Table */}
       <div className="glass-card p-5">
@@ -303,7 +405,7 @@ export function CohortMatrix({ leads, metaAds, googleKeywords }: CohortMatrixPro
                 <Bar dataKey="avg" radius={[4, 4, 0, 0]} maxBarSize={40}>
                   {cohortAvgDays.map((entry, index) => {
                     const intensity = Math.min(entry.avg / Math.max(...cohortAvgDays.map(d => d.avg), 1), 1);
-                    const hue = 142 - intensity * 100; // green → orange/red for longer times
+                    const hue = 142 - intensity * 100;
                     return <Cell key={index} fill={`hsl(${hue}, 70%, 50%)`} />;
                   })}
                 </Bar>
