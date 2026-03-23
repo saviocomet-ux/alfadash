@@ -4,7 +4,7 @@ import { getMetaKpis, MetaAd } from "@/data/parseMetaAds";
 import { useMetaAdsApi } from "@/hooks/useMetaAdsApi";
 import { useKommoData } from "@/hooks/useKommoData";
 import { useGoogleAdsApi } from "@/hooks/useGoogleAdsApi";
-import { parseGoogleAdsKeywords, getGoogleAdsKpis } from "@/data/parseGoogleAds";
+import { getGoogleAdsKpis } from "@/data/parseGoogleAds";
 import { CohortMatrix } from "@/components/dashboard/CohortMatrix";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { StageChart } from "@/components/dashboard/StageChart";
@@ -18,12 +18,8 @@ import { LossReasonsChart } from "@/components/dashboard/LossReasonsChart";
 import { MetaAdsDashboard } from "@/components/dashboard/MetaAdsDashboard";
 import { GoogleAdsDashboard } from "@/components/dashboard/GoogleAdsDashboard";
 import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
-import { SheetsConfigDialog } from "@/components/dashboard/SheetsConfigDialog";
-import { useGoogleSheetsData } from "@/hooks/useGoogleSheetsData";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Users, TrendingUp, Calendar, Target, Search, Megaphone, CheckCircle, DollarSign, BarChart3, Clock, Wallet, Grid3X3, RefreshCw, Loader2 } from "lucide-react";
 
 function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: Date, end?: Date): T[] {
@@ -46,8 +42,6 @@ function filterByDateRange<T>(items: T[], getDate: (item: T) => string, start?: 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const Dashboard = () => {
-  // Google Sheets — only for Google Ads now
-  const sheets = useGoogleSheetsData();
 
   // CRM: always from Kommo API
   const kommo = useKommoData(true);
@@ -67,11 +61,10 @@ const Dashboard = () => {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterCampaign, setFilterCampaign] = useState<string>("all");
 
-  // Google date filter & API
+  // Google date filter & API (always live)
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
   const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
-  const [useGoogleApi, setUseGoogleApi] = useState(false);
-  const googleApi = useGoogleAdsApi(useGoogleApi, googleStart, googleEnd);
+  const googleApi = useGoogleAdsApi(true, googleStart, googleEnd);
 
   const dateFilteredLeads = useMemo(
     () => filterByDateRange(effectiveAllLeads, (l) => l.createdAt, crmStart, crmEnd),
@@ -105,9 +98,11 @@ const Dashboard = () => {
   // Meta Ads KPIs from API data
   const metaKpis = useMemo(() => getMetaKpis(metaAds), [metaAds]);
   
-  // Google Ads from Sheets/CSV
-  const googleKeywords = useMemo(() => parseGoogleAdsKeywords(sheets.googleAdsKeywordsCSV), [sheets.googleAdsKeywordsCSV]);
-  const googleKpis = useMemo(() => getGoogleAdsKpis(googleKeywords), [googleKeywords]);
+  // Google Ads KPIs from API
+  const googleKpis = useMemo(() => {
+    if (googleApi.data?.keywords) return getGoogleAdsKpis(googleApi.data.keywords as any[]);
+    return { totalImpressions: 0, totalClicks: 0, totalCost: 0, avgCPC: 0, avgCTR: 0, totalConversions: 0, conversionRate: 0, costPerConversion: 0 };
+  }, [googleApi.data]);
   const totalInvestido = metaKpis.totalSpent + googleKpis.totalCost;
 
   // Tempo médio de fechamento
@@ -143,12 +138,6 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <SheetsConfigDialog
-              config={sheets.config}
-              onSave={sheets.updateConfig}
-              loading={sheets.loading}
-              onRefetch={sheets.refetch}
-            />
             <div className="text-xs text-muted-foreground font-mono">
               Atualizado em {new Date().toLocaleDateString("pt-BR")}
             </div>
@@ -349,20 +338,15 @@ const Dashboard = () => {
                   onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
                 />
                 <div className="flex items-center gap-2 ml-auto">
-                  <Switch id="google-api-toggle" checked={useGoogleApi} onCheckedChange={setUseGoogleApi} />
-                  <Label htmlFor="google-api-toggle" className="text-xs font-medium text-muted-foreground">
-                    Google Ads API (ao vivo)
-                  </Label>
-                  {useGoogleApi && (
-                    <button
-                      onClick={() => googleApi.fetch()}
-                      disabled={googleApi.loading}
-                      className="ml-2 p-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                      title="Atualizar dados do Google Ads"
-                    >
-                      {googleApi.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => googleApi.fetch()}
+                    disabled={googleApi.loading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    title="Atualizar dados do Google Ads"
+                  >
+                    {googleApi.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    {googleApi.loading ? "Atualizando..." : "Atualizar"}
+                  </button>
                 </div>
               </div>
               {googleApi.error && (
@@ -370,7 +354,7 @@ const Dashboard = () => {
                   Erro ao buscar dados do Google Ads: {googleApi.error}
                 </div>
               )}
-              {useGoogleApi && googleApi.loading && (
+              {googleApi.loading && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Carregando dados do Google Ads...
@@ -379,14 +363,12 @@ const Dashboard = () => {
               <GoogleAdsDashboard
                 startDate={googleStart}
                 endDate={googleEnd}
-                keywordsCsvOverride={sheets.googleAdsKeywordsCSV}
-                timelineCsvOverride={sheets.googleAdsTimelineCSV}
-                apiData={useGoogleApi ? googleApi.data : null}
+                apiData={googleApi.data}
               />
             </div>
           </TabsContent>
           <TabsContent value="cohort">
-            <CohortMatrix leads={effectiveAllLeads} metaAds={metaAds} googleKeywords={googleKeywords} />
+            <CohortMatrix leads={effectiveAllLeads} metaAds={metaAds} googleKeywords={googleApi.data?.keywords as any[] || []} />
           </TabsContent>
         </Tabs>
       </main>
