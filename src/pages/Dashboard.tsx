@@ -348,20 +348,15 @@ const Dashboard = () => {
                   onClear={() => { setGoogleStart(undefined); setGoogleEnd(undefined); }}
                 />
                 <div className="flex items-center gap-2 ml-auto">
-                  <Switch id="google-api-toggle" checked={useGoogleApi} onCheckedChange={setUseGoogleApi} />
-                  <Label htmlFor="google-api-toggle" className="text-xs font-medium text-muted-foreground">
-                    Google Ads API (ao vivo)
-                  </Label>
-                  {useGoogleApi && (
-                    <button
-                      onClick={() => googleApi.fetch()}
-                      disabled={googleApi.loading}
-                      className="ml-2 p-1.5 rounded-md bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                      title="Atualizar dados do Google Ads"
-                    >
-                      {googleApi.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => googleApi.fetch()}
+                    disabled={googleApi.loading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    title="Atualizar dados do Google Ads"
+                  >
+                    {googleApi.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    {googleApi.loading ? "Atualizando..." : "Atualizar"}
+                  </button>
                 </div>
               </div>
               {googleApi.error && (
@@ -369,7 +364,7 @@ const Dashboard = () => {
                   Erro ao buscar dados do Google Ads: {googleApi.error}
                 </div>
               )}
-              {useGoogleApi && googleApi.loading && (
+              {googleApi.loading && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Carregando dados do Google Ads...
@@ -378,9 +373,7 @@ const Dashboard = () => {
               <GoogleAdsDashboard
                 startDate={googleStart}
                 endDate={googleEnd}
-                keywordsCsvOverride={sheets.googleAdsKeywordsCSV}
-                timelineCsvOverride={sheets.googleAdsTimelineCSV}
-                apiData={useGoogleApi ? googleApi.data : null}
+                apiData={googleApi.data}
               />
             </div>
           </TabsContent>
