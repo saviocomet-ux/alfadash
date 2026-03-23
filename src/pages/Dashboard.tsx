@@ -67,11 +67,10 @@ const Dashboard = () => {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterCampaign, setFilterCampaign] = useState<string>("all");
 
-  // Google date filter & API
+  // Google date filter & API (always live)
   const [googleStart, setGoogleStart] = useState<Date | undefined>();
   const [googleEnd, setGoogleEnd] = useState<Date | undefined>();
-  const [useGoogleApi, setUseGoogleApi] = useState(false);
-  const googleApi = useGoogleAdsApi(useGoogleApi, googleStart, googleEnd);
+  const googleApi = useGoogleAdsApi(true, googleStart, googleEnd);
 
   const dateFilteredLeads = useMemo(
     () => filterByDateRange(effectiveAllLeads, (l) => l.createdAt, crmStart, crmEnd),
