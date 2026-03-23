@@ -138,12 +138,6 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <SheetsConfigDialog
-              config={sheets.config}
-              onSave={sheets.updateConfig}
-              loading={sheets.loading}
-              onRefetch={sheets.refetch}
-            />
             <div className="text-xs text-muted-foreground font-mono">
               Atualizado em {new Date().toLocaleDateString("pt-BR")}
             </div>
